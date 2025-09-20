@@ -3,3 +3,5 @@ uvicorn[standard]
 python-dotenv
 aiohttp
 websockets
+PILLOW
+google-genai

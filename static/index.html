@@ -4,29 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proto - Collaborative AI Tool</title>
-    
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter for UI & Playfair Display for the welcome message -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
-
-    <!-- Boxicons for high-quality iconography -->
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     
     <style>
-        /* ... (keep all your existing styles) ... */
+        /* ... (all your existing styles are correct, no changes needed here) ... */
         body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
         .font-fancy { font-family: 'Playfair Display', serif; }
-        @keyframes dance {
-            0% { transform: translate(0%, 0%) scale(1) rotate(0deg); }
-            25% { transform: translate(60%, 80%) scale(1.3) rotate(90deg); }
-            50% { transform: translate(-10%, 40%) scale(0.8) rotate(180deg); }
-            75% { transform: translate(30%, 0%) scale(1.2) rotate(270deg); }
-            100% { transform: translate(0%, 0%) scale(1) rotate(360deg); }
-        }
+        @keyframes dance { 0% { transform: translate(0%, 0%) scale(1) rotate(0deg); } 25% { transform: translate(60%, 80%) scale(1.3) rotate(90deg); } 50% { transform: translate(-10%, 40%) scale(0.8) rotate(180deg); } 75% { transform: translate(30%, 0%) scale(1.2) rotate(270deg); } 100% { transform: translate(0%, 0%) scale(1) rotate(360deg); } }
         .animate-dance { animation: dance 15s infinite cubic-bezier(0.36, 0, 0.64, 1); }
         .animation-delay-4000 { animation-delay: -4s; }
         .animation-delay-8000 { animation-delay: -8s; }
@@ -35,39 +23,60 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-
-        /* New styles for proactive suggestions and code blocks */
-        .ai-suggestion {
-            background-color: #fefce8; /* light yellow */
-            border-left: 4px solid #facc15; /* yellow-400 */
-            padding: 12px;
-            border-radius: 8px;
-            font-style: italic;
+        .tool-indicator { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 9999px; background-color: #f1f5f9; font-size: 0.8rem; color: #475569; margin-bottom: 0.5rem; }
+        .code-block { background-color: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.875em; margin-top: 0.75rem; border: 1px solid #334155; }
+        .search-sources { font-size: 0.8rem; color: #475569; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.25rem;}
+        .search-sources a { color: #0ea5e9; text-decoration: none; }
+        .search-sources a:hover { text-decoration: underline; }
+        .artifact-container { transition: all 0.3s ease-in-out; }
+        .retracted-artifact-container { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .retracted-artifact-container.expanded { max-height: 500px; }
+        
+        /* vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .ai-suggestion p {
-            font-style: normal;
-        }
-        .code-block {
-            background-color: #1e293b; /* slate-800 */
-            color: #e2e8f0; /* slate-200 */
+        .suggestion-item {
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 0.75rem;
             padding: 1rem;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.9em;
-            margin-top: 0.5rem;
+            margin-bottom: 0.75rem;
+            animation: fadeIn 0.5s ease-out;
+            color: #374151;
+            font-size: 0.9rem;
         }
-
+        .suggestion-item strong {
+            color: #111827;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .suggestions-pane::-webkit-scrollbar {
+            width: 5px;
+        }
+        .suggestions-pane::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .suggestions-pane::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 3px;
+        }
+        .suggestions-pane:hover::-webkit-scrollbar-thumb {
+            background: #a1a1aa;
+        }
+        /* ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^ */
     </style>
 </head>
 <body class="relative overflow-hidden">
-    <!-- ... (keep your background blobs) ... -->
+    <!-- Notification container for proactive suggestions (REMOVED) -->
+
+    <!-- Background gradient blobs -->
     <div class="absolute top-0 -left-1/3 w-96 h-96 bg-yellow-200/30 rounded-full filter blur-3xl opacity-50 animate-dance"></div>
     <div class="absolute top-0 -right-1/3 w-96 h-96 bg-slate-200/30 rounded-full filter blur-3xl opacity-50 animate-dance animation-delay-4000"></div>
     <div class="absolute -bottom-16 left-1/4 w-96 h-96 bg-yellow-100/30 rounded-full filter blur-3xl opacity-50 animate-dance animation-delay-8000"></div>
 
-
-    <!-- ... (keep welcome screen HTML) ... -->
+    <!-- Welcome Screen -->
     <div id="welcome-screen" class="relative min-h-screen w-full flex items-center justify-center p-4">
         <div class="w-full max-w-md mx-auto bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30">
             <div class="p-8 md:p-12 text-center text-slate-900">
@@ -84,58 +93,72 @@
         </div>
     </div>
 
-
+    <!-- Main Application UI -->
     <main id="main-app" class="hidden relative h-screen w-full p-4 flex gap-4">
-        <!-- ... (keep left pane HTML) ... -->
-        <section class="w-[60%] h-full bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6 flex flex-col justify-start items-center relative overflow-hidden pt-12">
-            <!-- Larger, more prominent dancing Gradient Blobs -->
+        
+        <!-- vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv -->
+        <!-- Left Pane -->
+        <section class="w-[60%] h-full bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6 flex flex-row relative overflow-hidden pt-12">
+            <!-- Gradient blobs for left pane -->
             <div class="absolute top-[-10rem] left-[-15rem] w-[32rem] h-[32rem] bg-yellow-300/40 rounded-full filter blur-3xl animate-dance"></div>
             <div class="absolute bottom-[-10rem] right-[-15rem] w-[32rem] h-[32rem] bg-slate-300/40 rounded-full filter blur-3xl animate-dance animation-delay-4000"></div>
-            <div class="absolute top-[20%] right-[-10rem] w-[28rem] h-[28rem] bg-amber-200/40 rounded-full filter blur-3xl animate-dance animation-delay-8000"></div>
-            <div class="absolute bottom-[5%] left-[5%] w-[24rem] h-[24rem] bg-stone-300/40 rounded-full filter blur-3xl animate-dance animation-delay-12000"></div>
-            
-            <div id="welcome-message" class="font-fancy text-5xl font-medium text-slate-800 tracking-tight z-10 text-shadow"></div>
-            
-            <div class="flex-grow w-full flex flex-col items-center justify-center gap-4 z-10">
-                <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
-                    <i class='bx bxs-camera-movie text-xl'></i>
-                    <span>Share Your Screen</span>
-                </button>
-                <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
-                    <i class='bx bxs-calendar-plus text-xl'></i>
-                    <span>Add all my assignments to my calendar</span>
-                </button>
-                <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
-                    <i class='bx bxs-file-doc text-xl'></i>
-                    <span>Summarize this page</span>
-                </button>
+
+            <!-- Main Content Area (approx 60% of the pane) -->
+            <div class="w-3/5 h-full flex flex-col items-center">
+                <div id="welcome-message" class="font-fancy text-5xl font-medium text-slate-800 tracking-tight z-10 text-shadow"></div>
+                
+                <div id="artifact-container" class="w-full max-w-2xl mt-8 z-20 flex justify-center items-center artifact-container">
+                    <!-- Generated images will be displayed here -->
+                </div>
+
+                <div class="flex-grow w-full flex flex-col items-center justify-center gap-4 z-10">
+                    <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                        <i class='bx bxs-file-doc text-xl'></i>
+                        <span>Summarize this page</span>
+                    </button>
+                     <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                        <i class='bx bxs-calendar-plus text-xl'></i>
+                        <span>Add my assignments to my calendar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Faint Divider Line -->
+            <div class="w-px bg-slate-300/60 self-stretch mx-6 my-8"></div>
+
+            <!-- Proactive Suggestions Area -->
+            <div class="flex-1 h-full flex flex-col">
+                <h3 class="text-lg font-semibold text-slate-800 mb-4 flex-shrink-0">Proactive Suggestions</h3>
+                <div id="proactive-suggestions-pane" class="flex-1 overflow-y-auto suggestions-pane pr-2">
+                    <!-- Suggestions will be dynamically added here -->
+                </div>
             </div>
         </section>
+        <!-- ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^ -->
 
 
-        <!-- Right Pane (40% width): Chat and Screen Share -->
+        <!-- Right Pane -->
         <section class="w-[40%] h-full flex flex-col gap-4">
-            <!-- Top Right: AI Chat with updated UI -->
+            <!-- AI Chat -->
             <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col">
                 <h3 class="text-lg font-semibold text-slate-800 mb-2 px-2">AI Assistant</h3>
                 <div id="chat-messages" class="flex-1 overflow-y-auto pr-2 space-y-4 py-2">
-                    <!-- Initial AI message -->
                     <div class="flex justify-start">
                         <div class="max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3">
-                           <p>Hello! How can I help you today? You can also share your screen below for proactive assistance.</p>
+                           <p>Hello! Ask me to generate an image, do a calculation, or search the web.</p>
                         </div>
                     </div>
                 </div>
                 <div class="mt-2 flex items-center gap-2">
-                    <input id="chat-input" type="text" placeholder="Ask Proto AI..." class="flex-1 w-full px-4 py-2 bg-white/80 border border-slate-300 rounded-full shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                    <input id="chat-input" type="text" placeholder="e.g., Draw a golden retriever in a space suit" class="flex-1 w-full px-4 py-2 bg-white/80 border border-slate-300 rounded-full shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
                     <button id="send-btn" class="bg-slate-900 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0">
                         <i class='bx bxs-up-arrow-alt text-xl'></i>
                     </button>
                 </div>
             </div>
-            <!-- Bottom Right: Screen Share -->
+            <!-- Screen Share -->
             <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col justify-between">
-                 <h3 class="text-lg font-semibold text-slate-800">Collaboration</h3>
+                 <h3 class="text-lg font-semibold text-slate-800">Proactive Assistance</h3>
                  <div id="screen-share-container" class="flex-1 flex items-center justify-center my-4">
                     <button id="share-btn" class="flex items-center gap-2 bg-slate-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-opacity-50 transition-all duration-300">
                         <i class='bx bxs-camera-movie'></i>
@@ -143,7 +166,7 @@
                     </button>
                     <div id="video-wrapper" class="hidden relative w-full h-full p-1 bg-slate-200/50 rounded-lg">
                         <video id="screen-video" class="w-full h-full object-cover rounded-md" autoplay muted playsinline></video>
-                        <div id="screen-controls" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white/20 p-2 flex items-center gap-2">
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white/20 p-2 flex items-center gap-2">
                             <button id="stop-share-btn" class="w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 rounded-full transition-colors" title="Stop Sharing">
                                 <i class='bx bx-stop text-white text-2xl'></i>
                             </button>
@@ -156,7 +179,9 @@
     </main>
 
     <script>
-        // DOM element references
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DOM element references ---
         const welcomeScreen = document.getElementById('welcome-screen');
         const mainApp = document.getElementById('main-app');
         const nameInput = document.getElementById('name-input');
@@ -165,122 +190,132 @@
         const screenVideo = document.getElementById('screen-video');
         const videoWrapper = document.getElementById('video-wrapper');
         const welcomeMessage = document.getElementById('welcome-message');
-        const screenControls = document.getElementById('screen-controls');
         const stopShareBtn = document.getElementById('stop-share-btn');
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
+        const artifactContainer = document.getElementById('artifact-container');
+        // vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv
+        const suggestionsPane = document.getElementById('proactive-suggestions-pane');
+        // ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^
         
         // --- Application State ---
         let socket;
         let screenCaptureInterval;
+        let mediaStream;
         let chatHistory = [];
-        const originalTitle = document.title;
-        let isReceivingSuggestion = false;
-        let currentSuggestionElement = null;
-
+        let messageCounter = 0;
+        let currentAiMessage = { bubble: null, textContent: null, toolIndicator: null };
+        let imageStreamState = { isStreaming: false, mimeType: '', base64Data: '' };
+        let activeArtifact = { messageId: null, element: null };
 
         // --- UI Helper Functions ---
-        const appendMessage = (sender, content) => {
-            const messageWrapper = document.createElement('div');
-            messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
-
-            const messageBubble = document.createElement('div');
-            if (sender === 'user') {
-                messageBubble.className = 'max-w-[85%] bg-slate-900 text-white rounded-2xl rounded-br-none p-3';
-                messageBubble.textContent = content;
-            } else if (sender === 'ai_suggestion') {
-                messageBubble.className = 'max-w-[85%] ai-suggestion';
-                const icon = document.createElement('i');
-                icon.className = 'bx bxs-sparkles mr-2';
-                messageBubble.appendChild(icon);
-                const textSpan = document.createElement('span');
-                textSpan.textContent = "Proactive Suggestion:";
-                messageBubble.appendChild(textSpan);
-                const contentP = document.createElement('p');
-                contentP.className = 'mt-1';
-                contentP.innerHTML = content; // Using innerHTML to render potential markdown
-                messageBubble.appendChild(contentP);
-            } else { // Standard AI response
-                messageBubble.className = 'max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3';
-                messageBubble.innerHTML = content; // Using innerHTML to render potential markdown
-            }
+        // vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv
+        const showProactiveNotification = (message) => {
+            const suggestionItem = document.createElement('div');
+            suggestionItem.className = 'suggestion-item';
+            // Simple markdown for bolding
+            const formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            suggestionItem.innerHTML = `<p>${formattedMessage}</p>`;
             
-            messageWrapper.appendChild(messageBubble);
+            suggestionsPane.appendChild(suggestionItem);
+            
+            // Auto-scroll to the bottom to show the latest suggestion
+            suggestionsPane.scrollTop = suggestionsPane.scrollHeight;
+        };
+        // ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^
+
+        const appendUserMessage = (content) => {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = 'flex justify-end';
+            messageWrapper.innerHTML = `<div class="max-w-[85%] bg-slate-900 text-white rounded-2xl rounded-br-none p-3">${content}</div>`;
             chatMessages.appendChild(messageWrapper);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            return messageBubble; // Return the element for streaming updates
+        };
+        
+        const createAiMessage = () => {
+            messageCounter++;
+            const messageId = `ai-message-${messageCounter}`;
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = 'flex justify-start';
+            
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3 w-full';
+            messageBubble.id = messageId; // Assign ID to the bubble itself
+            
+            const toolIndicator = document.createElement('div');
+            const textContent = document.createElement('div');
+            
+            messageBubble.appendChild(toolIndicator);
+            messageBubble.appendChild(textContent);
+            messageWrapper.appendChild(messageBubble);
+            chatMessages.appendChild(messageWrapper);
+            
+            currentAiMessage = { bubble: messageBubble, textContent: textContent, toolIndicator: toolIndicator };
+            return messageId;
         };
 
-        // --- Proactive AI (WebSocket) Logic ---
-        const connectWebSocket = () => {
-            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            socket = new WebSocket(`${proto}//${window.location.host}/ws/proactive`);
+        const retractArtifact = () => {
+            if (!activeArtifact.element || !activeArtifact.messageId) return;
 
-            socket.onopen = () => console.log("Proactive AI connection established.");
-            
-            socket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.error) {
-                    console.error("Received error from server:", data.error);
-                    isReceivingSuggestion = false;
-                    return;
-                }
-
-                if (!isReceivingSuggestion) {
-                    isReceivingSuggestion = true;
-                    // Create a new suggestion element
-                    const suggestionWrapper = appendMessage('ai_suggestion', ''); // Start with empty content
-                    currentSuggestionElement = suggestionWrapper.querySelector('p');
-                    
-                    // Show notification
-                    if (document.hidden) {
-                        document.title = '(1) New Suggestion | Proto';
-                    }
-                }
-                
-                // Append streamed content to the current suggestion element
-                if (data.candidates && data.candidates[0].content.parts[0].text && currentSuggestionElement) {
-                    currentSuggestionElement.textContent += data.candidates[0].content.parts[0].text;
-                }
-
-                // Check for end of generation
-                if(data.candidates && data.candidates[0].finishReason) {
-                    isReceivingSuggestion = false;
-                    currentSuggestionElement = null;
-                }
-            };
-            
-            socket.onclose = () => {
-                console.log("Proactive AI connection closed. Reconnecting...");
-                setTimeout(connectWebSocket, 3000); // Attempt to reconnect
-            };
-
-            socket.onerror = (error) => {
-                console.error("WebSocket Error:", error);
-                socket.close();
-            };
-        };
-
-        // --- Notification Logic ---
-        window.addEventListener('focus', () => {
-            if (document.title !== originalTitle) {
-                document.title = originalTitle;
+            const oldMessageBubble = document.getElementById(activeArtifact.messageId);
+            if (!oldMessageBubble) {
+                console.warn("Could not find old message bubble to retract artifact to.");
+                return;
             }
-        });
+
+            const container = document.createElement('div');
+            container.className = 'retracted-artifact-container mt-2';
+            
+            const controls = document.createElement('div');
+            controls.className = 'flex gap-2 mb-1';
+            
+            const expandBtn = document.createElement('button');
+            expandBtn.className = 'text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1';
+            expandBtn.innerHTML = "<i class='bx bx-expand'></i> View Artifact";
+            expandBtn.onclick = () => {
+                container.classList.toggle('expanded');
+                expandBtn.innerHTML = container.classList.contains('expanded') 
+                    ? "<i class='bx bx-collapse'></i> Hide Artifact" 
+                    : "<i class='bx bx-expand'></i> View Artifact";
+            };
+            
+            controls.appendChild(expandBtn);
+            
+            oldMessageBubble.appendChild(controls);
+            oldMessageBubble.appendChild(container);
+            
+            container.appendChild(activeArtifact.element);
+            activeArtifact = { messageId: null, element: null };
+            artifactContainer.innerHTML = ''; // Clear the main artifact pane
+        };
+
+        const displayImageArtifact = (dataUrl, messageId) => {
+            retractArtifact(); 
+
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.className = 'max-w-full max-h-[60vh] rounded-xl shadow-lg';
+            
+            artifactContainer.innerHTML = '';
+            artifactContainer.appendChild(img);
+            
+            activeArtifact = { messageId: messageId, element: img };
+        };
 
         // --- Chat (HTTP Streaming) Logic ---
         const handleSendMessage = async () => {
             const message = chatInput.value.trim();
             if (!message) return;
 
-            appendMessage('user', message);
+            appendUserMessage(message);
             chatHistory.push({"role": "user", "parts": [{"text": message}]});
             chatInput.value = '';
 
-            const aiMessageBubble = appendMessage('ai', '<i class="bx bx-loader-alt bx-spin"></i>'); // Thinking indicator
+            const messageId = createAiMessage();
+            let fullResponseText = "";
+            let sources = [];
             
-            let fullResponse = "";
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
@@ -290,8 +325,7 @@
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                aiMessageBubble.innerHTML = ""; // Clear thinking indicator
-
+                
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
@@ -300,31 +334,95 @@
                     const lines = chunk.split('\n\n');
                     
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const jsonData = JSON.parse(line.substring(6));
-                            if (jsonData.candidates && jsonData.candidates[0].content.parts[0].text) {
-                                const textPart = jsonData.candidates[0].content.parts[0].text;
-                                fullResponse += textPart;
-                                aiMessageBubble.textContent = fullResponse; // Update bubble content
-                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            switch (data.type) {
+                                case 'text':
+                                    fullResponseText += data.content;
+                                    currentAiMessage.textContent.innerText = fullResponseText;
+                                    break;
+                                case 'search_start':
+                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bxl-google bx-spin'></i> <span>Searching with Google...</span></div>`;
+                                    break;
+                                case 'search_end':
+                                    currentAiMessage.toolIndicator.innerHTML = '';
+                                    sources = data.content;
+                                    break;
+                                case 'code_start':
+                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bx-code-alt bx-spin'></i> <span>Executing Code...</span></div>`;
+                                    break;
+                                case 'code_output':
+                                    currentAiMessage.toolIndicator.innerHTML = '';
+                                    const codeBlock = document.createElement('pre');
+                                    codeBlock.className = 'code-block';
+                                    codeBlock.innerText = data.content;
+                                    currentAiMessage.bubble.appendChild(codeBlock);
+                                    break;
+                                case 'image_start':
+                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bx-image bx-spin'></i> <span>Generating Image...</span></div>`;
+                                    imageStreamState = { isStreaming: true, mimeType: data.mime_type, base64Data: '' };
+                                    break;
+                                case 'image_chunk':
+                                    if (imageStreamState.isStreaming) imageStreamState.base64Data += data.content;
+                                    break;
+                                case 'image_end':
+                                    if (imageStreamState.isStreaming) {
+                                        currentAiMessage.toolIndicator.innerHTML = '';
+                                        const dataUrl = `data:${imageStreamState.mimeType};base64,${imageStreamState.base64Data}`;
+                                        displayImageArtifact(dataUrl, messageId);
+                                        imageStreamState = { isStreaming: false, mimeType: '', base64Data: '' };
+                                    }
+                                    break;
+                                case 'error':
+                                    currentAiMessage.textContent.innerHTML = `<p class="text-red-500">Error: ${data.content}</p>`;
+                                    break;
                             }
+                        } catch (e) {
+                            console.warn("Could not parse chunk:", line);
                         }
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }
             } catch (error) {
                 console.error("Chat Error:", error);
-                aiMessageBubble.textContent = "Sorry, I encountered an error.";
+                currentAiMessage.textContent.innerText = "Sorry, I encountered an error.";
             }
             
-            chatHistory.push({"role": "model", "parts": [{"text": fullResponse}]});
+            if (sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'search-sources';
+                const sourceLinks = sources.map(url => {
+                    // Create a cleaner display URL
+                    const displayUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+                    return `<a href="${url}" target="_blank" rel="noopener noreferrer"><i class='bx bx-link-external'></i> ${displayUrl}</a>`;
+                }).join('');
+                sourcesDiv.innerHTML = `<strong>Sources:</strong>${sourceLinks}`;
+                currentAiMessage.bubble.appendChild(sourcesDiv);
+            }
+
+            chatHistory.push({"role": "model", "parts": [{"text": fullResponseText}]});
         };
 
-        // --- Main Application Logic ---
+        const stopScreenSharing = () => {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            if (socket) {
+                socket.close();
+            }
+            if (screenCaptureInterval) {
+                clearInterval(screenCaptureInterval);
+            }
+            videoWrapper.classList.add('hidden');
+            shareBtn.classList.remove('hidden');
+        };
+
+        // --- App Initialization and Event Listeners ---
         const showMainApp = (name) => {
             welcomeMessage.textContent = `Welcome, ${name}`;
             welcomeScreen.classList.add('hidden');
             mainApp.classList.remove('hidden');
-            connectWebSocket(); // Connect WebSocket when app starts
         };
         
         continueBtn.addEventListener('click', () => {
@@ -332,67 +430,71 @@
             if (userName) {
                 localStorage.setItem('protoUserName', userName);
                 showMainApp(userName);
-            } else {
-                nameInput.classList.add('border-red-500', 'ring-red-500');
             }
         });
-
-        nameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') continueBtn.click();
-        });
         
+        nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') continueBtn.click(); });
         sendBtn.addEventListener('click', handleSendMessage);
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleSendMessage();
-        });
+        chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSendMessage(); });
 
         shareBtn.addEventListener('click', async () => {
             try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { cursor: "always", frameRate: 1 }, // Low frame rate is fine
-                    audio: false
-                });
-
-                screenVideo.srcObject = stream;
+                mediaStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                screenVideo.srcObject = mediaStream;
                 
                 shareBtn.classList.add('hidden');
                 videoWrapper.classList.remove('hidden');
 
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws/proactive`);
 
-                screenCaptureInterval = setInterval(() => {
-                    if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.onopen = () => {
+                    console.log("Proactive WebSocket connected.");
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    screenCaptureInterval = setInterval(() => {
+                        if (socket.readyState !== WebSocket.OPEN) return;
                         canvas.width = screenVideo.videoWidth;
                         canvas.height = screenVideo.videoHeight;
                         context.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.5); // Compress image
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
                         socket.send(dataUrl);
-                    }
-                }, 3000); // Send frame every 3 seconds
-
-                const stopSharing = () => {
-                    clearInterval(screenCaptureInterval);
-                    stream.getTracks().forEach(track => track.stop());
-                    shareBtn.classList.remove('hidden');
-                    videoWrapper.classList.add('hidden');
-                    screenVideo.srcObject = null;
+                    }, 3000); // Send frame every 3 seconds
                 };
-                
-                stream.getVideoTracks()[0].addEventListener('ended', stopSharing);
-                stopShareBtn.onclick = stopSharing;
+
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'proactive_suggestion') {
+                        showProactiveNotification(data.content);
+                    }
+                };
+
+                socket.onclose = () => {
+                    console.log("Proactive WebSocket disconnected.");
+                    clearInterval(screenCaptureInterval);
+                };
+
+                socket.onerror = (error) => {
+                    console.error("WebSocket Error:", error);
+                    stopScreenSharing();
+                };
 
             } catch (err) {
-                console.error("Screen Share Error:", err);
+                console.error("Error starting screen share:", err);
+                shareBtn.classList.remove('hidden');
+                videoWrapper.classList.add('hidden');
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedName = localStorage.getItem('protoUserName');
-            if (savedName) {
-                showMainApp(savedName);
-            }
-        });
+        stopShareBtn.addEventListener('click', stopScreenSharing);
+        
+        const savedName = localStorage.getItem('protoUserName');
+        if (savedName) {
+            showMainApp(savedName);
+        }
+    
+    });
     </script>
 </body>
 </html>
