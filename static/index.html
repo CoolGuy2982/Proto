@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proto - Collaborative AI Tool</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter for UI & Playfair Display for the welcome message -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Boxicons for high-quality iconography -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <style>
+        /* ... (keep all your existing styles) ... */
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
+        .font-fancy { font-family: 'Playfair Display', serif; }
+        @keyframes dance {
+            0% { transform: translate(0%, 0%) scale(1) rotate(0deg); }
+            25% { transform: translate(60%, 80%) scale(1.3) rotate(90deg); }
+            50% { transform: translate(-10%, 40%) scale(0.8) rotate(180deg); }
+            75% { transform: translate(30%, 0%) scale(1.2) rotate(270deg); }
+            100% { transform: translate(0%, 0%) scale(1) rotate(360deg); }
+        }
+        .animate-dance { animation: dance 15s infinite cubic-bezier(0.36, 0, 0.64, 1); }
+        .animation-delay-4000 { animation-delay: -4s; }
+        .animation-delay-8000 { animation-delay: -8s; }
+        .animation-delay-12000 { animation-delay: -12s; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        /* New styles for proactive suggestions and code blocks */
+        .ai-suggestion {
+            background-color: #fefce8; /* light yellow */
+            border-left: 4px solid #facc15; /* yellow-400 */
+            padding: 12px;
+            border-radius: 8px;
+            font-style: italic;
+        }
+        .ai-suggestion p {
+            font-style: normal;
+        }
+        .code-block {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+        }
+
+    </style>
+</head>
+<body class="relative overflow-hidden">
+    <!-- ... (keep your background blobs) ... -->
+    <div class="absolute top-0 -left-1/3 w-96 h-96 bg-yellow-200/30 rounded-full filter blur-3xl opacity-50 animate-dance"></div>
+    <div class="absolute top-0 -right-1/3 w-96 h-96 bg-slate-200/30 rounded-full filter blur-3xl opacity-50 animate-dance animation-delay-4000"></div>
+    <div class="absolute -bottom-16 left-1/4 w-96 h-96 bg-yellow-100/30 rounded-full filter blur-3xl opacity-50 animate-dance animation-delay-8000"></div>
+
+
+    <!-- ... (keep welcome screen HTML) ... -->
+    <div id="welcome-screen" class="relative min-h-screen w-full flex items-center justify-center p-4">
+        <div class="w-full max-w-md mx-auto bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30">
+            <div class="p-8 md:p-12 text-center text-slate-900">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tighter">Welcome to Proto</h1>
+                <p class="mt-4 text-slate-600">What should we call you?</p>
+                <div class="mt-8 text-left">
+                    <label for="name-input" class="text-sm font-medium text-slate-700">First Name</label>
+                    <input id="name-input" type="text" class="mt-1 block w-full px-4 py-3 bg-white/80 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500" placeholder="e.g., Jane">
+                </div>
+                <button id="continue-btn" class="mt-6 w-full bg-slate-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-opacity-50 transition-all duration-300 transform hover:scale-105">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <main id="main-app" class="hidden relative h-screen w-full p-4 flex gap-4">
+        <!-- ... (keep left pane HTML) ... -->
+        <section class="w-[60%] h-full bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6 flex flex-col justify-start items-center relative overflow-hidden pt-12">
+            <!-- Larger, more prominent dancing Gradient Blobs -->
+            <div class="absolute top-[-10rem] left-[-15rem] w-[32rem] h-[32rem] bg-yellow-300/40 rounded-full filter blur-3xl animate-dance"></div>
+            <div class="absolute bottom-[-10rem] right-[-15rem] w-[32rem] h-[32rem] bg-slate-300/40 rounded-full filter blur-3xl animate-dance animation-delay-4000"></div>
+            <div class="absolute top-[20%] right-[-10rem] w-[28rem] h-[28rem] bg-amber-200/40 rounded-full filter blur-3xl animate-dance animation-delay-8000"></div>
+            <div class="absolute bottom-[5%] left-[5%] w-[24rem] h-[24rem] bg-stone-300/40 rounded-full filter blur-3xl animate-dance animation-delay-12000"></div>
+            
+            <div id="welcome-message" class="font-fancy text-5xl font-medium text-slate-800 tracking-tight z-10 text-shadow"></div>
+            
+            <div class="flex-grow w-full flex flex-col items-center justify-center gap-4 z-10">
+                <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                    <i class='bx bxs-camera-movie text-xl'></i>
+                    <span>Share Your Screen</span>
+                </button>
+                <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                    <i class='bx bxs-calendar-plus text-xl'></i>
+                    <span>Add all my assignments to my calendar</span>
+                </button>
+                <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                    <i class='bx bxs-file-doc text-xl'></i>
+                    <span>Summarize this page</span>
+                </button>
+            </div>
+        </section>
+
+
+        <!-- Right Pane (40% width): Chat and Screen Share -->
+        <section class="w-[40%] h-full flex flex-col gap-4">
+            <!-- Top Right: AI Chat with updated UI -->
+            <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col">
+                <h3 class="text-lg font-semibold text-slate-800 mb-2 px-2">AI Assistant</h3>
+                <div id="chat-messages" class="flex-1 overflow-y-auto pr-2 space-y-4 py-2">
+                    <!-- Initial AI message -->
+                    <div class="flex justify-start">
+                        <div class="max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3">
+                           <p>Hello! How can I help you today? You can also share your screen below for proactive assistance.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                    <input id="chat-input" type="text" placeholder="Ask Proto AI..." class="flex-1 w-full px-4 py-2 bg-white/80 border border-slate-300 rounded-full shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                    <button id="send-btn" class="bg-slate-900 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0">
+                        <i class='bx bxs-up-arrow-alt text-xl'></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Bottom Right: Screen Share -->
+            <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col justify-between">
+                 <h3 class="text-lg font-semibold text-slate-800">Collaboration</h3>
+                 <div id="screen-share-container" class="flex-1 flex items-center justify-center my-4">
+                    <button id="share-btn" class="flex items-center gap-2 bg-slate-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-opacity-50 transition-all duration-300">
+                        <i class='bx bxs-camera-movie'></i>
+                        <span>Share Screen for Proactive Help</span>
+                    </button>
+                    <div id="video-wrapper" class="hidden relative w-full h-full p-1 bg-slate-200/50 rounded-lg">
+                        <video id="screen-video" class="w-full h-full object-cover rounded-md" autoplay muted playsinline></video>
+                        <div id="screen-controls" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white/20 p-2 flex items-center gap-2">
+                            <button id="stop-share-btn" class="w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 rounded-full transition-colors" title="Stop Sharing">
+                                <i class='bx bx-stop text-white text-2xl'></i>
+                            </button>
+                        </div>
+                    </div>
+                 </div>
+                 <p class="text-xs text-slate-500 text-center">Share your screen to get proactive suggestions from Proto AI in real-time.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // DOM element references
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const mainApp = document.getElementById('main-app');
+        const nameInput = document.getElementById('name-input');
+        const continueBtn = document.getElementById('continue-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const screenVideo = document.getElementById('screen-video');
+        const videoWrapper = document.getElementById('video-wrapper');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const screenControls = document.getElementById('screen-controls');
+        const stopShareBtn = document.getElementById('stop-share-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        
+        // --- Application State ---
+        let socket;
+        let screenCaptureInterval;
+        let chatHistory = [];
+        const originalTitle = document.title;
+        let isReceivingSuggestion = false;
+        let currentSuggestionElement = null;
+
+
+        // --- UI Helper Functions ---
+        const appendMessage = (sender, content) => {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const messageBubble = document.createElement('div');
+            if (sender === 'user') {
+                messageBubble.className = 'max-w-[85%] bg-slate-900 text-white rounded-2xl rounded-br-none p-3';
+                messageBubble.textContent = content;
+            } else if (sender === 'ai_suggestion') {
+                messageBubble.className = 'max-w-[85%] ai-suggestion';
+                const icon = document.createElement('i');
+                icon.className = 'bx bxs-sparkles mr-2';
+                messageBubble.appendChild(icon);
+                const textSpan = document.createElement('span');
+                textSpan.textContent = "Proactive Suggestion:";
+                messageBubble.appendChild(textSpan);
+                const contentP = document.createElement('p');
+                contentP.className = 'mt-1';
+                contentP.innerHTML = content; // Using innerHTML to render potential markdown
+                messageBubble.appendChild(contentP);
+            } else { // Standard AI response
+                messageBubble.className = 'max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3';
+                messageBubble.innerHTML = content; // Using innerHTML to render potential markdown
+            }
+            
+            messageWrapper.appendChild(messageBubble);
+            chatMessages.appendChild(messageWrapper);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageBubble; // Return the element for streaming updates
+        };
+
+        // --- Proactive AI (WebSocket) Logic ---
+        const connectWebSocket = () => {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            socket = new WebSocket(`${proto}//${window.location.host}/ws/proactive`);
+
+            socket.onopen = () => console.log("Proactive AI connection established.");
+            
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.error) {
+                    console.error("Received error from server:", data.error);
+                    isReceivingSuggestion = false;
+                    return;
+                }
+
+                if (!isReceivingSuggestion) {
+                    isReceivingSuggestion = true;
+                    // Create a new suggestion element
+                    const suggestionWrapper = appendMessage('ai_suggestion', ''); // Start with empty content
+                    currentSuggestionElement = suggestionWrapper.querySelector('p');
+                    
+                    // Show notification
+                    if (document.hidden) {
+                        document.title = '(1) New Suggestion | Proto';
+                    }
+                }
+                
+                // Append streamed content to the current suggestion element
+                if (data.candidates && data.candidates[0].content.parts[0].text && currentSuggestionElement) {
+                    currentSuggestionElement.textContent += data.candidates[0].content.parts[0].text;
+                }
+
+                // Check for end of generation
+                if(data.candidates && data.candidates[0].finishReason) {
+                    isReceivingSuggestion = false;
+                    currentSuggestionElement = null;
+                }
+            };
+            
+            socket.onclose = () => {
+                console.log("Proactive AI connection closed. Reconnecting...");
+                setTimeout(connectWebSocket, 3000); // Attempt to reconnect
+            };
+
+            socket.onerror = (error) => {
+                console.error("WebSocket Error:", error);
+                socket.close();
+            };
+        };
+
+        // --- Notification Logic ---
+        window.addEventListener('focus', () => {
+            if (document.title !== originalTitle) {
+                document.title = originalTitle;
+            }
+        });
+
+        // --- Chat (HTTP Streaming) Logic ---
+        const handleSendMessage = async () => {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            appendMessage('user', message);
+            chatHistory.push({"role": "user", "parts": [{"text": message}]});
+            chatInput.value = '';
+
+            const aiMessageBubble = appendMessage('ai', '<i class="bx bx-loader-alt bx-spin"></i>'); // Thinking indicator
+            
+            let fullResponse = "";
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, history: chatHistory.slice(0, -1) })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                aiMessageBubble.innerHTML = ""; // Clear thinking indicator
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonData = JSON.parse(line.substring(6));
+                            if (jsonData.candidates && jsonData.candidates[0].content.parts[0].text) {
+                                const textPart = jsonData.candidates[0].content.parts[0].text;
+                                fullResponse += textPart;
+                                aiMessageBubble.textContent = fullResponse; // Update bubble content
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Chat Error:", error);
+                aiMessageBubble.textContent = "Sorry, I encountered an error.";
+            }
+            
+            chatHistory.push({"role": "model", "parts": [{"text": fullResponse}]});
+        };
+
+        // --- Main Application Logic ---
+        const showMainApp = (name) => {
+            welcomeMessage.textContent = `Welcome, ${name}`;
+            welcomeScreen.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            connectWebSocket(); // Connect WebSocket when app starts
+        };
+        
+        continueBtn.addEventListener('click', () => {
+            const userName = nameInput.value.trim();
+            if (userName) {
+                localStorage.setItem('protoUserName', userName);
+                showMainApp(userName);
+            } else {
+                nameInput.classList.add('border-red-500', 'ring-red-500');
+            }
+        });
+
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') continueBtn.click();
+        });
+        
+        sendBtn.addEventListener('click', handleSendMessage);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleSendMessage();
+        });
+
+        shareBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always", frameRate: 1 }, // Low frame rate is fine
+                    audio: false
+                });
+
+                screenVideo.srcObject = stream;
+                
+                shareBtn.classList.add('hidden');
+                videoWrapper.classList.remove('hidden');
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+
+                screenCaptureInterval = setInterval(() => {
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        canvas.width = screenVideo.videoWidth;
+                        canvas.height = screenVideo.videoHeight;
+                        context.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.5); // Compress image
+                        socket.send(dataUrl);
+                    }
+                }, 3000); // Send frame every 3 seconds
+
+                const stopSharing = () => {
+                    clearInterval(screenCaptureInterval);
+                    stream.getTracks().forEach(track => track.stop());
+                    shareBtn.classList.remove('hidden');
+                    videoWrapper.classList.add('hidden');
+                    screenVideo.srcObject = null;
+                };
+                
+                stream.getVideoTracks()[0].addEventListener('ended', stopSharing);
+                stopShareBtn.onclick = stopSharing;
+
+            } catch (err) {
+                console.error("Screen Share Error:", err);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedName = localStorage.getItem('protoUserName');
+            if (savedName) {
+                showMainApp(savedName);
+            }
+        });
+    </script>
+</body>
+</html>
