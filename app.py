@@ -3,7 +3,7 @@ import json
 import logging
 import asyncio
 import re
-from typing import List, Dict, AsyncGenerator
+from typing import List, Dict, AsyncGenerator, Optional
 import base64
 import io
 
@@ -101,16 +101,54 @@ Provide your output in the same format as this example:
 CHAT_SYSTEM_PROMPT = """
 You are a helpful AI assistant named Proto. You are in a direct chat with the user.
 - Answer their questions clearly and concisely.
-- You have access to tools: a code interpreter for calculations and image generation, and Google Search for up-to-date information.
+- You have access to tools: Google Search for up-to-date information.
+
+To create a link for adding an event to Google Calendar, use the following format: 
+[["calendar":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=[EVENT_TITLE]&dates=[START_DATE_TIME]/[END_DATE_TIME]&details=[EVENT_DETAILS]&location=[EVENT_LOCATION]"]]. 
+You must URL-encode the values for title, details, and location, and format dates and times correctly. For timed events, use the format  YYYYMMDDTHHMMSS with a ctz (time zone) parameter for the local time of the user 
+
+2. if you see multiple events or multiple assignments etc, ask if the user wants to add all of them to their calendar, then add the events
+
+3. If the event does not a location specified and you cannot find anything on google search that clues you into where the event is, put the best general location, e.g. for a class homework due for CS 193 and you can see that it's on the Purdue University WL brightspace, if you can't find where the building that this class is being held, just put the location as a general location like Purdue University.
+
+4. I would not like you to ask me for confirmation to create/add event(s), i would just like you to create the events. I will in the frontend have the option to confirm it so don't worry about that. 
+Just create the events within that response.
+
+VERY IMPORTANT: THE USER CAN CHAT WITH YOU, SO you can make it conversational and ask them clarifying questions to give them the best response.
+
+// for looking at user screenshot and generating data visualizations accordingly
+You're going to get an image input, and you need to use another AI to output and display some sort of visualization or graph based on that input. You should pretend like you're creating the data visualization when you're actually asking another AI to do it.
+If you see multiple tables of data, generate graphs/visualizations for all of them.
+Generate the original visualization based on how you think the data is best displayed, but if the user says they want another type of visualization, output that in place of your original one.
+Provide your output in the same format as this example:
+[["demo":"Imagine a line graph here with 'Day' on the x-axis (1, 2, 3, 4) and 'Temperature' on the y-axis, showing points at (1, 20), (2, 22), (3, 19), and (4, 25), connected by a line."]]
+
+
+
+
 - Use your tools when a user's request requires them. For example, use code execution for "draw a chart of this data" or "calculate the fibonacci sequence". Use search for "who won the game last night?".
 """
 
 class ChatMessage(BaseModel):
     message: str
     history: List[Dict]
+    current_image: Optional[str] = None
+
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+async def resolve_redirect(session: aiohttp.ClientSession, url: str) -> str:
+    """Follows a redirect for a given URL and returns the final destination URL."""
+    if "vertexaisearch.cloud.google.com" not in url:
+        return url
+    try:
+        # Use a HEAD request for efficiency as we only need the final URL from headers
+        async with session.head(url, allow_redirects=True, timeout=2.5) as response:
+            return str(response.url)
+    except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+        logging.warning(f"Could not resolve redirect for {url}: {e}")
+        return url # Return original URL on failure
 
 async def stream_gemini_with_tools(model_name: str, contents: List[Dict], api_key: str, system_instruction: str) -> AsyncGenerator[Dict, None]:
     """
@@ -141,25 +179,30 @@ async def stream_gemini_with_tools(model_name: str, contents: List[Dict], api_ke
                             for part in chunk['candidates'][0].get('content', {}).get('parts', []):
                                 if "text" in part and part["text"]:
                                     yield {'type': 'text', 'content': part['text']}
-                                elif "toolCode" in part:
+                                elif "functionCall" in part: # Updated for latest API
                                     yield {'type': 'search_start', 'content': 'Searching with Google...'}
 
                             if chunk['candidates'][0].get('groundingMetadata'):
                                 metadata = chunk['candidates'][0]['groundingMetadata']
                                 if metadata.get('webSearchQueries'):
-                                    sources = [
+                                    initial_sources = [
                                         g_chunk.get('web', {}).get('uri') 
                                         for g_chunk in metadata.get('groundingChunks', []) 
                                         if g_chunk.get('web', {}).get('uri')
                                     ]
-                                    if sources:
-                                        yield {'type': 'search_end', 'content': list(set(sources))}
+                                    if initial_sources:
+                                        # Concurrently resolve all source URLs to get final destinations
+                                        resolve_tasks = [resolve_redirect(session, url) for url in initial_sources]
+                                        final_sources = await asyncio.gather(*resolve_tasks)
+                                        yield {'type': 'search_end', 'content': list(set(final_sources))}
                         except json.JSONDecodeError:
                             logging.warning(f"Could not decode JSON chunk: {line_str[6:]}")
     except Exception as e:
         logging.error(f"Error in stream function: {e}", exc_info=True)
         yield {"type": "error", "content": f"An unexpected error occurred: {str(e)}"}
 
+
+        
 @app.get("/")
 async def read_root():
     return FileResponse('static/index.html')
@@ -281,8 +324,30 @@ async def websocket_proactive(websocket: WebSocket):
             pass
 
 async def chat_stream_generator(chat_message: ChatMessage):
-    contents = chat_message.history + [{'role': 'user', 'parts': [{'text': chat_message.message}]}]
-    async for structured_chunk in stream_gemini_with_tools("gemini-2.5-pro", contents, API_KEY, CHAT_SYSTEM_PROMPT):
+    # The history already contains the full text conversation
+    contents = chat_message.history
+
+    # Construct the current user message, adding the image if it exists
+    user_parts = [{'text': chat_message.message}]
+    if chat_message.current_image:
+        try:
+            # The frontend sends a data URL, so we extract the base64 part
+            image_data = chat_message.current_image.split(",")[1]
+            user_parts.insert(0, {
+                "inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": image_data
+                }
+            })
+        except (IndexError, TypeError) as e:
+            logging.warning(f"Could not process `current_image` data URL: {e}")
+
+    contents.append({'role': 'user', 'parts': user_parts})
+    
+    # Use a vision-capable model to process both text and images
+    model_name = "gemini-2.5-pro" 
+
+    async for structured_chunk in stream_gemini_with_tools(model_name, contents, API_KEY, CHAT_SYSTEM_PROMPT):
         yield f"data: {json.dumps(structured_chunk)}\n\n"
         await asyncio.sleep(0.01)
 
@@ -293,12 +358,22 @@ async def chat_handler(chat_message: ChatMessage):
 
 
 HTML_SYSTEM_PROMPT = """
-You're going to get an input of a description of a graph and you need to create an HTML file to build an appropriate graph for the data.
-Just output the HTML file, don't include any background information or explanations.
-The HTML file must use dimensions that fit perfectly in a square. EVERYTHING MUST FIT IN A 1:1 CONTAINER!
-Make it interactive if needed. For example, the user should be able to change the values of initial velocity and angle in a projectile motion simulation.
-Use the chart.js JavaScript library for data visualizations and similar graphs, with the CDN link https://cdn.jsdelivr.net/npm/chart.js
-For animations, games, and other interactive visualizations, use the p5.js JavaScript library with the CDN link https://cdn.jsdelivr.net/npm/p5@1.11.10/lib/p5.min.js
+You are an expert web designer tasked with creating beautiful, single-file HTML visualizations. Your design philosophy is inspired by Apple: clean, modern, and intuitive.
+
+You will receive a prompt describing a visualization. Your response must be ONLY the raw HTML code for a complete, self-contained webpage. Do not include ```html or any explanations.
+
+**Design & Style Guidelines:**
+- **Typography**: Use a clean, sans-serif font. The best choice is the system font stack for a native feel: `font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;`. Ensure text is legible with slightly larger font sizes for headings and labels. Import fonts from Google Fonts if you need something specific and elegant.
+- **Layout**: The entire visualization MUST be fully responsive and fit perfectly within a 1:1 aspect ratio container. Use flexbox or grid to center the content. The `body` should have `margin: 0;` and `overflow: hidden;`.
+- **Color Palette**: Use a modern and clean color palette. Think light grays, whites, and one or two accent colors. Avoid harsh or jarring colors.
+- **Interactivity**: Add subtle hover effects and smooth transitions to interactive elements. User inputs (sliders, buttons) should be styled to be clean and minimal.
+
+**Technical Requirements:**
+- **Self-Contained**: The entire HTML, CSS, and JavaScript must be in a single file.
+- **Libraries**:
+    - For charts and data plots, use Chart.js: `<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>`
+    - For creative coding, animations, or simulations, use p5.js: `<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>`
+- **Dimensions**: The final output must be square and fill its container.
 """
 
 

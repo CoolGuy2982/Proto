@@ -92,6 +92,26 @@
 }
 
 
+/* Add these new CSS rules to your existing <style> block */
+        .ai-message-content {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 1rem; /* 16px */
+            line-height: 1.6;
+            color: #374151;
+        }
+        .ai-message-content p { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .ai-message-content p:first-child { margin-top: 0; }
+        .ai-message-content p:last-child { margin-bottom: 0; }
+        .ai-message-content strong { color: #111827; font-weight: 600; }
+        .ai-message-content h1, .ai-message-content h2, .ai-message-content h3 { color: #111827; font-weight: 700; margin-top: 1.25em; margin-bottom: 0.5em; line-height: 1.2; }
+        .ai-message-content h3 { font-size: 1.25em; }
+        .ai-message-content ul, .ai-message-content ol { list-style-position: outside; margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; }
+        .ai-message-content li { margin-top: 0.25em; margin-bottom: 0.25em; }
+        .ai-message-content pre { background-color: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; margin-top: 1em; margin-bottom: 1em; border: 1px solid #334155; }
+        .ai-message-content code { font-family: 'Courier New', Courier, monospace; background-color: rgba(15, 23, 42, 0.05); padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-size: 0.9em; }
+        .ai-message-content pre code { font-family: inherit; background-color: transparent; padding: 0; border-radius: 0; font-size: inherit; }
+
+
         /* Tailwind Typography plugin styles for markdown */
         .prose { color: #374151; max-width: 65ch; } .prose :where(p):not(:where([class~="not-prose"] *)) { margin-top: 1em; margin-bottom: 1em; } .prose :where(strong):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 600; } .prose :where(h1,h2,h3,h4,h5,h6):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2;} .prose :where(h3):not(:where([class~="not-prose"] *)) { font-size: 1.25em; } .prose :where(ul):not(:where([class~="not-prose"] *)) { list-style-type: disc; margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; } .prose :where(li):not(:where([class~="not-prose"] *)) { margin-top: 0.25em; margin-bottom: 0.25em; } .prose-sm { font-size: .875rem; line-height: 1.5; }
     </style>
@@ -158,7 +178,6 @@
 
         <section id="right-pane" class="w-[40%] h-full flex flex-col gap-4 transition-all duration-300">
             <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col">
-                <h3 class="text-lg font-semibold text-slate-800 mb-2 px-2">AI Assistant</h3>
                 <div id="chat-messages" class="flex-1 overflow-y-auto pr-2 space-y-4 py-2">
                     <div class="flex justify-start">
                         <div class="max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3">
@@ -262,6 +281,27 @@
                 clearInterval(titleBlinkInterval);
                 titleBlinkInterval = null;
                 document.title = originalTitle;
+            }
+        };
+
+        const sendBrowserNotification = (title, options) => {
+            if (!("Notification" in window)) {
+                console.warn("This browser does not support desktop notifications.");
+                return;
+            }
+            
+            // Let's check whether notification permissions have already been granted
+            if (Notification.permission === "granted") {
+                new Notification(title, options);
+            }
+            // Otherwise, we need to ask the user for permission
+            else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then((permission) => {
+                    // If the user accepts, let's create a notification
+                    if (permission === "granted") {
+                        new Notification(title, options);
+                    }
+                });
             }
         };
         
@@ -449,75 +489,80 @@ async function generateAndStoreVisualization(prompt, artifactId) {
     }
 }
         
-// DELETE your old 'showProactiveNotification' function and replace it with this.
 const showProactiveNotification = (suggestionData) => {
     notificationSound.play().catch(e => console.warn("Audio play failed:", e));
-    if (document.hidden) startTitleBlinking();
+    
+    if (document.hidden) {
+        startTitleBlinking();
+        
+        // --- NEW: Trigger browser notification ---
+        let notificationText = suggestionData.content || 'You have a new suggestion from Proto.';
+        // Clean up special formatting for a cleaner notification message
+        notificationText = notificationText.replace(/\[\[.*?\]\]/g, '').replace(/#+\s/g, '').replace(/\*+/g, '').trim();
+        
+        if (notificationText.length > 120) {
+            notificationText = notificationText.substring(0, 117) + '...';
+        }
+        if (!notificationText) {
+            notificationText = 'Check out this new proactive suggestion.';
+        }
+
+        sendBrowserNotification("💡 New Suggestion from Proto", {
+            body: notificationText,
+            icon: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡️</text></svg>"
+        });
+    }
 
     const message = suggestionData.content;
     const sources = suggestionData.sources || [];
     const suggestionItem = document.createElement('div');
     suggestionItem.className = 'suggestion-item';
 
-    // Regex to find all calendar links, not just the first one
     const calendarRegex = /\[\["calendar":\s*"(.*?)"\]\]/g;
     const calendarMatches = [...message.matchAll(calendarRegex)];
     let remainingMessage = message.replace(calendarRegex, '').trim();
 
-    // Regex for demos
     const demoRegex = /\[\["demo":"(.*?)"\]\]/s;
     const demoMatch = remainingMessage.match(demoRegex);
     remainingMessage = remainingMessage.replace(demoRegex, '').trim();
 
-    // 1. Render the main text content (if any remains)
     if (remainingMessage) {
         const textContent = document.createElement('div');
         buildMarkdownMessage(remainingMessage, sources, textContent);
         suggestionItem.appendChild(textContent);
     }
     
-    // 2. Render all found calendar cards
     if (calendarMatches.length > 0) {
         const calendarContainer = document.createElement('div');
         calendarContainer.className = 'space-y-2 mt-4';
         calendarMatches.forEach(match => {
-            const calendarUrl = match[1];
-            // Create a wrapper for each card so 'buildCalendarCard' doesn't overwrite siblings
             const cardWrapper = document.createElement('div');
-            buildCalendarCard(calendarUrl, cardWrapper);
+            buildCalendarCard(match[1], cardWrapper);
             calendarContainer.appendChild(cardWrapper);
         });
         suggestionItem.appendChild(calendarContainer);
     }
 
-    // 3. Render the visualization toggle button if a demo is found
     if (demoMatch && demoMatch[1].trim()) {
         const artifactId = `artifact-${Date.now()}`;
         const prompt = demoMatch[1].trim();
-        
         const controlsDiv = document.createElement('div');
         controlsDiv.className = 'mt-4 pt-4 border-t border-slate-300/50';
-
         const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'expand-demo-btn toggle-vis-btn'; // Class for easy selection
-        toggleBtn.dataset.artifactId = artifactId; // Link button to its artifact
+        toggleBtn.className = 'expand-demo-btn toggle-vis-btn';
+        toggleBtn.dataset.artifactId = artifactId;
         toggleBtn.innerHTML = `<span><i class='bx bx-show'></i> Show Visualization</span>`;
         toggleBtn.onclick = toggleVisualization;
-        
         controlsDiv.appendChild(toggleBtn);
         suggestionItem.appendChild(controlsDiv);
-
-        // Generate the visualization in the background; it will start hidden
         generateAndStoreVisualization(prompt, artifactId);
     }
 
-    // Only add the suggestion to the pane if it actually contains content
     if (suggestionItem.hasChildNodes()) {
         suggestionsPane.appendChild(suggestionItem);
         suggestionsPane.scrollTop = suggestionsPane.scrollHeight;
     }
-};        
-
+};
 
         document.addEventListener('visibilitychange', () => { if (!document.hidden) stopTitleBlinking(); });
         
@@ -542,6 +587,7 @@ const showProactiveNotification = (suggestionData) => {
             loadingIndicator.className = 'flex items-center gap-1.5 px-1 py-2';
             loadingIndicator.innerHTML = '<span class="dot dot-1"></span><span class="dot dot-2"></span><span class="dot dot-3"></span>';
             const textContent = document.createElement('div');
+            textContent.className = 'ai-message-content'; // Apply the new style class
             messageBubble.appendChild(toolIndicator);
             messageBubble.appendChild(loadingIndicator);
             messageBubble.appendChild(textContent);
@@ -551,6 +597,60 @@ const showProactiveNotification = (suggestionData) => {
             currentAiMessage = { bubble: messageBubble, textContent: textContent, toolIndicator: toolIndicator, loadingIndicator: loadingIndicator };
             return messageId;
         };
+
+        const renderAiMessageContent = (message, sources, bubble, textContentContainer) => {
+            const calendarRegex = /\[\["calendar":\s*"(.*?)"\]\]/g;
+            const calendarMatches = [...message.matchAll(calendarRegex)];
+            let remainingMessage = message.replace(calendarRegex, '').trim();
+
+            const demoRegex = /\[\["demo":"(.*?)"\]\]/s;
+            const demoMatch = remainingMessage.match(demoRegex);
+            remainingMessage = remainingMessage.replace(demoRegex, '').trim();
+
+            // Set the final, cleaned markdown text.
+            textContentContainer.innerHTML = marked.parse(remainingMessage);
+            
+            if (calendarMatches.length > 0) {
+                const calendarContainer = document.createElement('div');
+                calendarContainer.className = 'space-y-2 mt-3';
+                calendarMatches.forEach(match => {
+                    const cardWrapper = document.createElement('div');
+                    buildCalendarCard(match[1], cardWrapper);
+                    calendarContainer.appendChild(cardWrapper);
+                });
+                textContentContainer.appendChild(calendarContainer);
+            }
+
+            if (demoMatch && demoMatch[1].trim()) {
+                const artifactId = `artifact-chat-${Date.now()}`;
+                const prompt = demoMatch[1].trim();
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'mt-3 pt-3 border-t border-slate-300/50';
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'expand-demo-btn toggle-vis-btn';
+                toggleBtn.dataset.artifactId = artifactId;
+                toggleBtn.innerHTML = `<span><i class='bx bx-show'></i> Show Visualization</span>`;
+                toggleBtn.onclick = toggleVisualization;
+                controlsDiv.appendChild(toggleBtn);
+                textContentContainer.appendChild(controlsDiv);
+                generateAndStoreVisualization(prompt, artifactId);
+            }
+
+            if (sources && sources.length > 0) {
+                const faviconsHtml = sources.map(url => {
+                    try {
+                        const domain = new URL(url).hostname;
+                        const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                        return `<a href="${url}" target="_blank" rel="noopener noreferrer" title="${domain}" class="w-8 h-8 rounded-full bg-white/40 backdrop-blur-sm border border-white/50 flex items-center justify-center -ml-3 first:ml-0 hover:z-10 transition-transform duration-200 hover:scale-110 shadow-sm"><img src="${faviconUrl}" alt="${domain} favicon" class="w-4 h-4"></a>`;
+                    } catch (e) { return ''; }
+                }).join('');
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'search-sources !flex-row items-center gap-2 !mt-3';
+                sourcesDiv.innerHTML = `<strong>Sources:</strong><div class="flex">${faviconsHtml}</div>`;
+                bubble.appendChild(sourcesDiv);
+            }
+        };
+
 
         const removeLoaderIfNeeded = () => {
             if (currentAiMessage.loadingIndicator) {
@@ -568,28 +668,56 @@ const showProactiveNotification = (suggestionData) => {
             const messageId = createAiMessage();
             let fullResponseText = "";
             let sources = [];
+            
             try {
+                let currentImage = null;
+                if (mediaStream && mediaStream.active) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = screenVideo.videoWidth;
+                        canvas.height = screenVideo.videoHeight;
+                        if (canvas.width > 0 && canvas.height > 0) {
+                            context.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+                            currentImage = canvas.toDataURL('image/jpeg', 0.8);
+                        }
+                    } catch (e) {
+                        console.warn("Could not capture screen frame:", e);
+                    }
+                }
+
+                const payload = { 
+                    message: message, 
+                    history: chatHistory.slice(0, -1),
+                    ...(currentImage && { current_image: currentImage })
+                };
+
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message, history: chatHistory.slice(0, -1) })
+                    body: JSON.stringify(payload)
                 });
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n\n');
+                    
                     for (const line of lines) {
                         if (!line.startsWith('data: ')) continue;
                         try {
                             const data = JSON.parse(line.substring(6));
                             removeLoaderIfNeeded();
+                            
                             switch (data.type) {
                                 case 'text':
                                     fullResponseText += data.content;
-                                    currentAiMessage.textContent.innerText = fullResponseText;
+                                    // Render markdown live as it streams
+                                    currentAiMessage.textContent.innerHTML = marked.parse(fullResponseText);
                                     break;
                                 case 'search_start':
                                     currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bxl-google bx-spin'></i> <span>Searching...</span></div>`;
@@ -600,9 +728,11 @@ const showProactiveNotification = (suggestionData) => {
                                     break;
                                 case 'error':
                                     currentAiMessage.textContent.innerHTML = `<p class="text-red-500">Error: ${data.content}</p>`;
-                                    break;
+                                    return; 
                             }
-                        } catch (e) { console.warn("Could not parse chunk:", line); }
+                        } catch (e) { 
+                            console.warn("Could not parse chunk:", line); 
+                        }
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }
@@ -611,18 +741,13 @@ const showProactiveNotification = (suggestionData) => {
                 removeLoaderIfNeeded();
                 currentAiMessage.textContent.innerText = "Sorry, I encountered an error.";
             }
-            if (sources.length > 0) {
-                const sourcesDiv = document.createElement('div');
-                sourcesDiv.className = 'search-sources';
-                const sourceLinks = sources.map(url => {
-                    const displayUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
-                    return `<a href="${url}" target="_blank" rel="noopener noreferrer"><i class='bx bx-link-external'></i> ${displayUrl}</a>`;
-                }).join('');
-                sourcesDiv.innerHTML = `<strong>Sources:</strong>${sourceLinks}`;
-                currentAiMessage.bubble.appendChild(sourcesDiv);
-            }
+
+            renderAiMessageContent(fullResponseText, sources, currentAiMessage.bubble, currentAiMessage.textContent);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
             chatHistory.push({"role": "model", "parts": [{"text": fullResponseText}]});
         };
+
         const stopScreenSharing = () => {
             if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
             if (socket) socket.close();
@@ -690,6 +815,11 @@ const showProactiveNotification = (suggestionData) => {
             shareBtn.disabled = true;
             shareBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin text-xl'></i> <span>Initializing...</span>`;
             try {
+                 // Proactively ask for notification permission when starting to share.
+                if ("Notification" in window && Notification.permission === "default") {
+                    await Notification.requestPermission();
+                }
+
                 mediaStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                 mediaStream.getVideoTracks()[0].onended = () => stopScreenSharing();
                 screenVideo.srcObject = mediaStream;
@@ -750,6 +880,8 @@ const showProactiveNotification = (suggestionData) => {
                 stopScreenSharing();
             }
         });
+        
+        
         stopShareBtn.addEventListener('click', stopScreenSharing);
         const savedName = localStorage.getItem('protoUserName');
         if (savedName) showMainApp(savedName);
