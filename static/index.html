@@ -18,9 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
         .font-fancy { font-family: 'Playfair Display', serif; }
@@ -131,57 +129,6 @@ body.resizing-vertical {
 
         /* Tailwind Typography plugin styles for markdown */
         .prose { color: #374151; max-width: 65ch; } .prose :where(p):not(:where([class~="not-prose"] *)) { margin-top: 1em; margin-bottom: 1em; } .prose :where(strong):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 600; } .prose :where(h1,h2,h3,h4,h5,h6):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2;} .prose :where(h3):not(:where([class~="not-prose"] *)) { font-size: 1.25em; } .prose :where(ul):not(:where([class~="not-prose"] *)) { list-style-type: disc; margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; } .prose :where(li):not(:where([class~="not-prose"] *)) { margin-top: 0.25em; margin-bottom: 0.25em; } .prose-sm { font-size: .875rem; line-height: 1.5; }
-    
-/* Add/Replace these rules in your existing <style> block */
-        pre {
-            position: relative; 
-        }
-        .copy-code-btn {
-            position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            background-color: #334155;
-            color: #9ca3af;
-            border: 1px solid #475569;
-            padding: 0.25rem 0.6rem;
-            font-size: 0.8rem;
-            font-family: 'Inter', sans-serif;
-            border-radius: 0.375rem;
-            cursor: pointer;
-            opacity: 0.4; /* Make it subtly visible by default */
-            transition: opacity 0.2s, background-color 0.2s, color 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-        pre:hover .copy-code-btn {
-            opacity: 1; /* Full opacity on hover */
-        }
-        .copy-code-btn:hover {
-            background-color: #475569;
-            color: #e2e8f0;
-        }
-        .copy-code-btn.copied {
-            background-color: #16a34a;
-            color: white;
-            border-color: #15803d;
-        }
-
-        /* --- NEW: Clean, thin scrollbar for code blocks --- */
-        pre::-webkit-scrollbar {
-            height: 8px; /* Height for horizontal scrollbar */
-            width: 8px;
-        }
-        pre::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        pre::-webkit-scrollbar-thumb {
-            background-color: rgba(107, 114, 128, 0.3); /* Subtle, semi-transparent */
-            border-radius: 4px;
-        }
-        pre:hover::-webkit-scrollbar-thumb {
-            background-color: rgba(107, 114, 128, 0.6); /* Darker on hover */
-        }
     </style>
 </head>
 <body class="relative overflow-hidden">
@@ -354,19 +301,6 @@ body.resizing-vertical {
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        marked.setOptions({
-            // The highlight function is called when marked encounters a code block
-            highlight: function(code, lang) {
-                // Check if the language is valid, otherwise let highlight.js auto-detect
-                if (lang && hljs.getLanguage(lang)) {
-                    return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
-                }
-                // Use highlightAuto for language detection
-                return hljs.highlightAuto(code).value;
-            },
-            langPrefix: 'hljs language-' // For CSS classes
-        });
-        
         // --- DOM element references ---
         const welcomeScreen = document.getElementById('welcome-screen');
         const mainApp = document.getElementById('main-app');
@@ -673,7 +607,6 @@ const showProactiveNotification = (suggestionData) => {
         const textContent = document.createElement('div');
         buildMarkdownMessage(remainingMessage, sources, textContent);
         suggestionItem.appendChild(textContent);
-        enhanceCodeBlocks(textContent); // Add this line
     }
     
     if (calendarMatches.length > 0) {
@@ -752,10 +685,8 @@ const showProactiveNotification = (suggestionData) => {
             remainingMessage = remainingMessage.replace(demoRegex, '').trim();
 
             // Set the final, cleaned markdown text.
-        // Set the final, cleaned markdown text.
-    textContentContainer.innerHTML = marked.parse(remainingMessage);
-    enhanceCodeBlocks(textContentContainer); // Add this line
-                
+            textContentContainer.innerHTML = marked.parse(remainingMessage);
+            
             if (calendarMatches.length > 0) {
                 const calendarContainer = document.createElement('div');
                 calendarContainer.className = 'space-y-2 mt-3';
@@ -864,7 +795,6 @@ const showProactiveNotification = (suggestionData) => {
                                     fullResponseText += data.content;
                                     // Render markdown live as it streams
                                     currentAiMessage.textContent.innerHTML = marked.parse(fullResponseText);
-                                    enhanceCodeBlocks(currentAiMessage.textContent); // Add this line
                                     break;
                                 case 'search_start':
                                     currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bxl-google bx-spin'></i> <span>Searching...</span></div>`;
@@ -982,31 +912,17 @@ const showProactiveNotification = (suggestionData) => {
                     console.log("Proactive WebSocket connected.");
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
-                    
-                    // --- MODIFIED: Use ImageCapture for reliable background frame grabbing ---
-                    const track = mediaStream.getVideoTracks()[0];
-                    if (!track) {
-                        console.error("No video track found to capture.");
-                        stopScreenSharing();
-                        return;
-                    }
-                    const imageCapture = new ImageCapture(track);
-
                     screenCaptureInterval = setInterval(() => {
                         if (socket.readyState !== WebSocket.OPEN) return;
+                        canvas.width = screenVideo.videoWidth;
+                        canvas.height = screenVideo.videoHeight;
+                        if (canvas.width === 0 || canvas.height === 0) return;
+                        context.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
                         
-                        imageCapture.grabFrame().then(imageBitmap => {
-                            canvas.width = imageBitmap.width;
-                            canvas.height = imageBitmap.height;
-                            context.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
-                            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-                            
-                            const payload = { history: proactiveHistory, current_image: dataURL };
-                            socket.send(JSON.stringify(payload));
-                            lastSentImageForProactive = dataURL;
-                        }).catch(error => {
-                            console.warn("Could not grab frame:", error);
-                        });
+                        const payload = { history: proactiveHistory, current_image: dataURL };
+                        socket.send(JSON.stringify(payload));
+                        lastSentImageForProactive = dataURL;
                     }, 3000);
                 };
 
