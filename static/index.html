@@ -68,6 +68,30 @@
         .demo-iframe-container { position: relative; width: 100%; aspect-ratio: 1/1; background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); overflow: hidden; }
         .demo-iframe { width: 100%; height: 100%; border: 0; }
         
+
+        /* Add this to your existing <style> block */
+.main-content-area-container {
+    /* This class will be added to the visualization container */
+    max-height: 100%;
+    overflow-y: auto;
+}
+.demo-iframe-container { 
+    position: relative; 
+    width: 100%; 
+    /* Changed from aspect-ratio to a flexible height that won't overflow */
+    flex-grow: 1; 
+    min-height: 300px;
+    background-color: white; 
+    border-radius: 0.5rem; 
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); 
+    overflow: hidden; 
+}
+.toggle-vis-btn.active {
+    background-color: #d1d5db;
+    font-weight: 500;
+}
+
+
         /* Tailwind Typography plugin styles for markdown */
         .prose { color: #374151; max-width: 65ch; } .prose :where(p):not(:where([class~="not-prose"] *)) { margin-top: 1em; margin-bottom: 1em; } .prose :where(strong):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 600; } .prose :where(h1,h2,h3,h4,h5,h6):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2;} .prose :where(h3):not(:where([class~="not-prose"] *)) { font-size: 1.25em; } .prose :where(ul):not(:where([class~="not-prose"] *)) { list-style-type: disc; margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; } .prose :where(li):not(:where([class~="not-prose"] *)) { margin-top: 0.25em; margin-bottom: 0.25em; } .prose-sm { font-size: .875rem; line-height: 1.5; }
     </style>
@@ -111,7 +135,7 @@
                 <div id="welcome-message" class="font-fancy text-5xl font-medium text-slate-800 tracking-tight text-shadow"></div>
                 
                 <!-- MODIFIED: Main content area for initial prompts or visualizations -->
-                <div id="main-content-area" class="w-full max-w-2xl flex-grow flex flex-col items-center justify-center mt-8">
+<div id="main-content-area" class="w-full max-w-2xl flex-grow flex flex-col items-center justify-start mt-8 pt-4">
                     <div id="initial-prompts" class="flex flex-col items-center justify-center gap-4 w-full">
                          <button id="summarize-btn" class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
                             <i class='bx bxs-file-doc text-xl'></i>
@@ -218,9 +242,11 @@
         let currentAiMessage = { bubble: null, textContent: null, toolIndicator: null, loadingIndicator: null };
         let originalTitle = document.title;
         let titleBlinkInterval = null;
+        const visualizationArtifacts = {}; // To store all generated visualization DOM nodes
+
         // MODIFIED: State for managing main area visualizations
-        let previousArtifact = null; // Will hold the DOM node
-        let currentArtifact = null;  // Will hold the DOM node
+        //let previousArtifact = null; // Will hold the DOM node
+        //let currentArtifact = null;  // Will hold the DOM node
 
         // --- UI Helper Functions ---
         const startTitleBlinking = () => {
@@ -355,46 +381,144 @@
                 currentArtifact.innerHTML = `<p class="text-red-500 p-4">Error loading visualization.</p>`;
             }
         }
-        
-        const showProactiveNotification = (suggestionData) => {
-            notificationSound.play().catch(e => console.warn("Audio play failed:", e));
-            if (document.hidden) startTitleBlinking();
 
-            const message = suggestionData.content;
-            const sources = suggestionData.sources || [];
-            
-            const calendarRegex = /\[\["Calendar":"(.*?)"\]\]/s;
-            const demoRegex = /\[\["demo":"(.*?)"\]\]/s;
-
-            const calendarMatch = message.match(calendarRegex);
-            const demoMatch = message.match(demoRegex);
-            
-            if (demoMatch && demoMatch[1].trim()) {
-                // Handle visualization directly in the main area and stop processing this notification
-                displayVisualizationInMainArea(demoMatch[1].trim());
-                return; 
-            }
-            
-            // For all other suggestions, create an item in the suggestions pane
-            const suggestionItem = document.createElement('div');
-            suggestionItem.className = 'suggestion-item';
-            
-            if (calendarMatch && calendarMatch[1].trim()) {
-                buildCalendarCard(calendarMatch[1].trim(), suggestionItem);
-            } else {
-                // Default to standard markdown rendering for any other message
-                const messageText = message.replace(calendarRegex, '').replace(demoRegex, '').trim();
-                if (messageText) { // Only render if there's text left
-                    buildMarkdownMessage(messageText, sources, suggestionItem);
-                } else {
-                    return; // Don't show an empty suggestion item
-                }
-            }
-            
-            suggestionsPane.appendChild(suggestionItem);
-            suggestionsPane.scrollTop = suggestionsPane.scrollHeight;
-        };
         
+        function toggleVisualization(event) {
+    const clickedButton = event.currentTarget;
+    const artifactIdToShow = clickedButton.dataset.artifactId;
+    const artifactToShow = visualizationArtifacts[artifactIdToShow];
+
+    if (!artifactToShow) return;
+
+    const isAlreadyVisible = !artifactToShow.classList.contains('hidden');
+
+    // Reset all buttons and hide all artifacts first
+    document.querySelectorAll('.toggle-vis-btn').forEach(btn => {
+        btn.innerHTML = `<span><i class='bx bx-show'></i> Show Visualization</span>`;
+        btn.classList.remove('active');
+    });
+    Object.values(visualizationArtifacts).forEach(artifact => {
+        artifact.classList.add('hidden');
+    });
+
+    // If it was hidden, show it and update its button to the "active/hide" state
+    if (!isAlreadyVisible) {
+        artifactToShow.classList.remove('hidden');
+        clickedButton.innerHTML = `<span><i class='bx bx-hide'></i> Hide Visualization</span>`;
+        clickedButton.classList.add('active');
+    }
+}
+
+async function generateAndStoreVisualization(prompt, artifactId) {
+    if (!initialPrompts.classList.contains('hidden')) {
+        initialPrompts.classList.add('hidden');
+        // Add class to enable scrolling/height constraint
+        mainContentArea.classList.add('main-content-area-container');
+    }
+
+    const artifactNode = document.createElement('div');
+    artifactNode.id = artifactId;
+    artifactNode.className = 'w-full h-full flex flex-col hidden'; // Start hidden
+    artifactNode.innerHTML = `
+        <div class="demo-loader h-full">
+            <div class="flex items-center justify-center h-full gap-1.5 px-1 py-2 text-slate-500 text-sm">
+                <i class='bx bx-loader-alt bx-spin text-xl'></i>
+                <span>Generating visualization...</span>
+            </div>
+        </div>`;
+    
+    mainContentArea.appendChild(artifactNode);
+    visualizationArtifacts[artifactId] = artifactNode;
+    
+    try {
+        const response = await fetch('/html_gen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: prompt, history: [] })
+        });
+        if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+        const htmlCode = await response.text();
+
+        artifactNode.innerHTML = `
+            <div class="demo-iframe-container">
+                <iframe class="demo-iframe" srcdoc="${htmlCode.replace(/"/g, '&quot;')}"></iframe>
+            </div>`;
+    } catch (error) {
+        console.error("Error generating HTML artifact:", error);
+        artifactNode.innerHTML = `<p class="text-red-500 p-4">Error loading visualization.</p>`;
+    }
+}
+        
+// DELETE your old 'showProactiveNotification' function and replace it with this.
+const showProactiveNotification = (suggestionData) => {
+    notificationSound.play().catch(e => console.warn("Audio play failed:", e));
+    if (document.hidden) startTitleBlinking();
+
+    const message = suggestionData.content;
+    const sources = suggestionData.sources || [];
+    const suggestionItem = document.createElement('div');
+    suggestionItem.className = 'suggestion-item';
+
+    // Regex to find all calendar links, not just the first one
+    const calendarRegex = /\[\["calendar":\s*"(.*?)"\]\]/g;
+    const calendarMatches = [...message.matchAll(calendarRegex)];
+    let remainingMessage = message.replace(calendarRegex, '').trim();
+
+    // Regex for demos
+    const demoRegex = /\[\["demo":"(.*?)"\]\]/s;
+    const demoMatch = remainingMessage.match(demoRegex);
+    remainingMessage = remainingMessage.replace(demoRegex, '').trim();
+
+    // 1. Render the main text content (if any remains)
+    if (remainingMessage) {
+        const textContent = document.createElement('div');
+        buildMarkdownMessage(remainingMessage, sources, textContent);
+        suggestionItem.appendChild(textContent);
+    }
+    
+    // 2. Render all found calendar cards
+    if (calendarMatches.length > 0) {
+        const calendarContainer = document.createElement('div');
+        calendarContainer.className = 'space-y-2 mt-4';
+        calendarMatches.forEach(match => {
+            const calendarUrl = match[1];
+            // Create a wrapper for each card so 'buildCalendarCard' doesn't overwrite siblings
+            const cardWrapper = document.createElement('div');
+            buildCalendarCard(calendarUrl, cardWrapper);
+            calendarContainer.appendChild(cardWrapper);
+        });
+        suggestionItem.appendChild(calendarContainer);
+    }
+
+    // 3. Render the visualization toggle button if a demo is found
+    if (demoMatch && demoMatch[1].trim()) {
+        const artifactId = `artifact-${Date.now()}`;
+        const prompt = demoMatch[1].trim();
+        
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'mt-4 pt-4 border-t border-slate-300/50';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'expand-demo-btn toggle-vis-btn'; // Class for easy selection
+        toggleBtn.dataset.artifactId = artifactId; // Link button to its artifact
+        toggleBtn.innerHTML = `<span><i class='bx bx-show'></i> Show Visualization</span>`;
+        toggleBtn.onclick = toggleVisualization;
+        
+        controlsDiv.appendChild(toggleBtn);
+        suggestionItem.appendChild(controlsDiv);
+
+        // Generate the visualization in the background; it will start hidden
+        generateAndStoreVisualization(prompt, artifactId);
+    }
+
+    // Only add the suggestion to the pane if it actually contains content
+    if (suggestionItem.hasChildNodes()) {
+        suggestionsPane.appendChild(suggestionItem);
+        suggestionsPane.scrollTop = suggestionsPane.scrollHeight;
+    }
+};        
+
+
         document.addEventListener('visibilitychange', () => { if (!document.hidden) stopTitleBlinking(); });
         
         const appendUserMessage = (content) => {
@@ -541,7 +665,26 @@
         chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSendMessage(); });
         
         // NEW: Event listener for the summarize button
-        summarizeBtn.addEventListener('click', () => displayVisualizationInMainArea('Summarize the current page content'));
+
+        summarizeBtn.addEventListener('click', async () => {
+    // Hide all other artifacts and reset their buttons
+    document.querySelectorAll('.toggle-vis-btn').forEach(btn => {
+        btn.innerHTML = `<span><i class='bx bx-show'></i> Show Visualization</span>`;
+        btn.classList.remove('active');
+    });
+    Object.values(visualizationArtifacts).forEach(artifact => {
+        artifact.classList.add('hidden');
+    });
+
+    const artifactId = `artifact-summary-${Date.now()}`;
+    await generateAndStoreVisualization('Summarize the current page content', artifactId);
+    
+    // Manually show the new visualization since it has no toggle button
+    if (visualizationArtifacts[artifactId]) {
+        visualizationArtifacts[artifactId].classList.remove('hidden');
+    }
+});
+
 
         shareBtn.addEventListener('click', async () => {
             shareBtn.disabled = true;
