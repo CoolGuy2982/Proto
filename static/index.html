@@ -4,19 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proto - Collaborative AI Tool</title>
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡️</text></svg>">
+    <!-- Fix for page "jump" on refresh -->
+    <script>
+        if (history.scrollRestoration) {
+            history.scrollRestoration = 'manual';
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ADDED: Markdown parsing library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     
     <style>
-        /* ... (all your existing styles are correct, no changes needed here) ... */
         body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
         .font-fancy { font-family: 'Playfair Display', serif; }
         @keyframes dance { 0% { transform: translate(0%, 0%) scale(1) rotate(0deg); } 25% { transform: translate(60%, 80%) scale(1.3) rotate(90deg); } 50% { transform: translate(-10%, 40%) scale(0.8) rotate(180deg); } 75% { transform: translate(30%, 0%) scale(1.2) rotate(270deg); } 100% { transform: translate(0%, 0%) scale(1) rotate(360deg); } }
+        @keyframes dance-alt { 0% { transform: translate(0%, 0%) scale(1) rotate(0deg); } 25% { transform: translate(-10%, -60%) scale(0.7) rotate(-90deg); } 50% { transform: translate(-20%, -70%) scale(1.2) rotate(-180deg); } 75% { transform: translate(-40%, -10%) scale(0.9) rotate(-270deg); } 100% { transform: translate(0%, 0%) scale(1) rotate(-360deg); } }        
+        .animate-dance-alt { animation: dance-alt 18s infinite cubic-bezier(0.36, 0, 0.64, 1); }
         .animate-dance { animation: dance 15s infinite cubic-bezier(0.36, 0, 0.64, 1); }
         .animation-delay-4000 { animation-delay: -4s; }
+        .animation-delay-6000 { animation-delay: -6s; }
         .animation-delay-8000 { animation-delay: -8s; }
         .animation-delay-12000 { animation-delay: -12s; }
         ::-webkit-scrollbar { width: 6px; }
@@ -28,55 +39,45 @@
         .search-sources { font-size: 0.8rem; color: #475569; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.25rem;}
         .search-sources a { color: #0ea5e9; text-decoration: none; }
         .search-sources a:hover { text-decoration: underline; }
-        .artifact-container { transition: all 0.3s ease-in-out; }
-        .retracted-artifact-container { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
-        .retracted-artifact-container.expanded { max-height: 500px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .suggestion-item { background-color: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem; animation: fadeIn 0.5s ease-out; color: #374151; font-size: 0.9rem; }
+        .suggestion-item strong { color: #111827; display: block; margin-bottom: 0.25rem; }
+        .suggestions-pane::-webkit-scrollbar { width: 5px; }
+        .suggestions-pane::-webkit-scrollbar-track { background: transparent; }
+        .suggestions-pane::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+        .suggestions-pane:hover::-webkit-scrollbar-thumb { background: #a1a1aa; }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } }
+        .animate-pulse-red { animation: pulse-red 2s infinite; }
         
-        /* vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .suggestion-item {
-            background-color: rgba(255, 255, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            animation: fadeIn 0.5s ease-out;
-            color: #374151;
-            font-size: 0.9rem;
-        }
-        .suggestion-item strong {
-            color: #111827;
-            display: block;
-            margin-bottom: 0.25rem;
-        }
-        .suggestions-pane::-webkit-scrollbar {
-            width: 5px;
-        }
-        .suggestions-pane::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .suggestions-pane::-webkit-scrollbar-thumb {
-            background: transparent;
-            border-radius: 3px;
-        }
-        .suggestions-pane:hover::-webkit-scrollbar-thumb {
-            background: #a1a1aa;
-        }
-        /* ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^ */
+        /* --- NEW/MODIFIED STYLES --- */
+        @keyframes dots-pulse { 0% { transform: translateY(0); } 20% { transform: translateY(-4px); } 40% { transform: translateY(0); } 100% { transform: translateY(0); } }
+        .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #9ca3af; animation: dots-pulse 1.4s infinite ease-in-out; }
+        .dot-2 { animation-delay: 0.2s; }
+        .dot-3 { animation-delay: 0.4s; }
+
+        /* For Calendar Card */
+        .calendar-card-outer { border: 2px solid #d1d5db; border-radius: 0.75rem; padding: 0.25rem; }
+        .calendar-card-inner { background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(5px); border-radius: 0.5rem; padding: 1rem; }
+        .calendar-card-button { margin-top: 0.75rem; display: inline-flex; align-items: center; gap: 0.5rem; background-color: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: background-color 0.2s; }
+        .calendar-card-button:hover { background-color: #2563eb; }
+
+        /* For Main Area Visualization Artifact */
+        .expand-demo-btn { background-color: #e5e7eb; color: #4b5563; border: none; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: 9999px; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.25rem; }
+        .expand-demo-btn:hover { background-color: #d1d5db; }
+        .demo-loader { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1/1; background-color: #f3f4f6; border-radius: 0.5rem; }
+        .demo-iframe-container { position: relative; width: 100%; aspect-ratio: 1/1; background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); overflow: hidden; }
+        .demo-iframe { width: 100%; height: 100%; border: 0; }
+        
+        /* Tailwind Typography plugin styles for markdown */
+        .prose { color: #374151; max-width: 65ch; } .prose :where(p):not(:where([class~="not-prose"] *)) { margin-top: 1em; margin-bottom: 1em; } .prose :where(strong):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 600; } .prose :where(h1,h2,h3,h4,h5,h6):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2;} .prose :where(h3):not(:where([class~="not-prose"] *)) { font-size: 1.25em; } .prose :where(ul):not(:where([class~="not-prose"] *)) { list-style-type: disc; margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; } .prose :where(li):not(:where([class~="not-prose"] *)) { margin-top: 0.25em; margin-bottom: 0.25em; } .prose-sm { font-size: .875rem; line-height: 1.5; }
     </style>
 </head>
 <body class="relative overflow-hidden">
-    <!-- Notification container for proactive suggestions (REMOVED) -->
-
-    <!-- Background gradient blobs -->
+    <audio id="notification-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2465293b0a.mp3" preload="auto"></audio>
     <div class="absolute top-0 -left-1/3 w-96 h-96 bg-yellow-200/30 rounded-full filter blur-3xl opacity-50 animate-dance"></div>
     <div class="absolute top-0 -right-1/3 w-96 h-96 bg-slate-200/30 rounded-full filter blur-3xl opacity-50 animate-dance animation-delay-4000"></div>
     <div class="absolute -bottom-16 left-1/4 w-96 h-96 bg-yellow-100/30 rounded-full filter blur-3xl opacity-50 animate-dance animation-delay-8000"></div>
 
-    <!-- Welcome Screen -->
     <div id="welcome-screen" class="relative min-h-screen w-full flex items-center justify-center p-4">
         <div class="w-full max-w-md mx-auto bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30">
             <div class="p-8 md:p-12 text-center text-slate-900">
@@ -93,53 +94,45 @@
         </div>
     </div>
 
-    <!-- Main Application UI -->
     <main id="main-app" class="hidden relative h-screen w-full p-4 flex gap-4">
-        
-        <!-- vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv -->
-        <!-- Left Pane -->
-        <section class="w-[60%] h-full bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6 flex flex-row relative overflow-hidden pt-12">
-            <!-- Gradient blobs for left pane -->
-            <div class="absolute top-[-10rem] left-[-15rem] w-[32rem] h-[32rem] bg-yellow-300/40 rounded-full filter blur-3xl animate-dance"></div>
-            <div class="absolute bottom-[-10rem] right-[-15rem] w-[32rem] h-[32rem] bg-slate-300/40 rounded-full filter blur-3xl animate-dance animation-delay-4000"></div>
+       <section id="left-pane" class="w-[60%] h-full bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6 flex flex-row relative pt-12 overflow-hidden transition-all duration-300">
+            <button id="toggle-sidebar-btn" class="absolute top-3 right-3 text-slate-400 hover:text-slate-800 z-20 p-2 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="15" y1="3" x2="15" y2="21"></line>
+                </svg>
+            </button>
 
-            <!-- Main Content Area (approx 60% of the pane) -->
-            <div class="w-3/5 h-full flex flex-col items-center">
-                <div id="welcome-message" class="font-fancy text-5xl font-medium text-slate-800 tracking-tight z-10 text-shadow"></div>
+            <div class="absolute top-[-10rem] left-[-15rem] w-[32rem] h-[32rem] bg-yellow-300/40 rounded-full filter blur-3xl animate-dance z-0"></div>
+            <div class="absolute bottom-[-10rem] right-[-15rem] w-[32rem] h-[32rem] bg-slate-300/40 rounded-full filter blur-3xl animate-dance-alt animation-delay-4000 z-0"></div>
+            <div class="absolute bottom-1/4 right-[-15rem] w-[32rem] h-[32rem] bg-indigo-200/30 rounded-full filter blur-3xl animate-dance animation-delay-6000 z-0"></div>
+            
+            <div class="w-3/5 h-full flex flex-col items-center relative z-10">
+                <div id="welcome-message" class="font-fancy text-5xl font-medium text-slate-800 tracking-tight text-shadow"></div>
                 
-                <div id="artifact-container" class="w-full max-w-2xl mt-8 z-20 flex justify-center items-center artifact-container">
-                    <!-- Generated images will be displayed here -->
+                <!-- MODIFIED: Main content area for initial prompts or visualizations -->
+                <div id="main-content-area" class="w-full max-w-2xl flex-grow flex flex-col items-center justify-center mt-8">
+                    <div id="initial-prompts" class="flex flex-col items-center justify-center gap-4 w-full">
+                         <button id="summarize-btn" class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                            <i class='bx bxs-file-doc text-xl'></i>
+                            <span>Summarize this page</span>
+                        </button>
+                        <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
+                            <i class='bx bxs-calendar-plus text-xl'></i>
+                            <span>Add my assignments to my calendar</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex-grow w-full flex flex-col items-center justify-center gap-4 z-10">
-                    <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
-                        <i class='bx bxs-file-doc text-xl'></i>
-                        <span>Summarize this page</span>
-                    </button>
-                     <button class="bg-white/40 backdrop-blur-md border border-white/50 rounded-xl px-6 py-3 text-slate-800 font-medium hover:bg-white/60 transition-all duration-200 w-full max-w-sm text-left flex items-center gap-4">
-                        <i class='bx bxs-calendar-plus text-xl'></i>
-                        <span>Add my assignments to my calendar</span>
-                    </button>
-                </div>
             </div>
-
-            <!-- Faint Divider Line -->
             <div class="w-px bg-slate-300/60 self-stretch mx-6 my-8"></div>
-
-            <!-- Proactive Suggestions Area -->
-            <div class="flex-1 h-full flex flex-col">
-                <h3 class="text-lg font-semibold text-slate-800 mb-4 flex-shrink-0">Proactive Suggestions</h3>
-                <div id="proactive-suggestions-pane" class="flex-1 overflow-y-auto suggestions-pane pr-2">
-                    <!-- Suggestions will be dynamically added here -->
-                </div>
+            <div class="flex-1 h-full flex flex-col relative z-10">
+                <h3 class="font-fancy text-2xl font-light text-slate-500 mb-4 flex-shrink-0 text-center">Proactive Suggestions</h3>
+                <div id="proactive-suggestions-pane" class="flex-1 overflow-y-auto suggestions-pane pr-2"></div>
             </div>
         </section>
-        <!-- ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^ -->
 
-
-        <!-- Right Pane -->
-        <section class="w-[40%] h-full flex flex-col gap-4">
-            <!-- AI Chat -->
+        <section id="right-pane" class="w-[40%] h-full flex flex-col gap-4 transition-all duration-300">
             <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col">
                 <h3 class="text-lg font-semibold text-slate-800 mb-2 px-2">AI Assistant</h3>
                 <div id="chat-messages" class="flex-1 overflow-y-auto pr-2 space-y-4 py-2">
@@ -156,16 +149,15 @@
                     </button>
                 </div>
             </div>
-            <!-- Screen Share -->
             <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col justify-between">
                  <h3 class="text-lg font-semibold text-slate-800">Proactive Assistance</h3>
-                 <div id="screen-share-container" class="flex-1 flex items-center justify-center my-4">
-                    <button id="share-btn" class="flex items-center gap-2 bg-slate-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-opacity-50 transition-all duration-300">
+                 <div id="screen-share-container" class="flex-1 flex items-center justify-center my-4 min-h-0">
+                    <button id="share-btn" class="flex items-center gap-2 bg-slate-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-opacity-50 transition-all duration-300 disabled:opacity-75 disabled:cursor-wait">
                         <i class='bx bxs-camera-movie'></i>
-                        <span>Share Screen for Proactive Help</span>
+                        <span>Share Screen</span>
                     </button>
                     <div id="video-wrapper" class="hidden relative w-full h-full p-1 bg-slate-200/50 rounded-lg">
-                        <video id="screen-video" class="w-full h-full object-cover rounded-md" autoplay muted playsinline></video>
+                        <video id="screen-video" class="w-full h-full object-contain rounded-md" autoplay muted playsinline></video>
                         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white/20 p-2 flex items-center gap-2">
                             <button id="stop-share-btn" class="w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 rounded-full transition-colors" title="Stop Sharing">
                                 <i class='bx bx-stop text-white text-2xl'></i>
@@ -176,11 +168,19 @@
                  <p class="text-xs text-slate-500 text-center">Share your screen to get proactive suggestions from Proto AI in real-time.</p>
             </div>
         </section>
-    </main>
 
+        <div id="collapsed-icons-container" class="hidden absolute top-4 right-4 z-30 flex items-center gap-3">
+            <div id="recording-indicator" class="hidden w-3 h-3 bg-red-500 rounded-full animate-pulse-red"></div>
+            <button id="open-sidebar-btn" class="p-2 text-slate-600 hover:text-slate-900 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                </svg>
+            </button>
+        </div>
+    </main>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-
         // --- DOM element references ---
         const welcomeScreen = document.getElementById('welcome-screen');
         const mainApp = document.getElementById('main-app');
@@ -194,37 +194,209 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
-        const artifactContainer = document.getElementById('artifact-container');
-        // vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv
         const suggestionsPane = document.getElementById('proactive-suggestions-pane');
-        // ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^
+        const leftPane = document.getElementById('left-pane');
+        const rightPane = document.getElementById('right-pane');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+        const openSidebarBtn = document.getElementById('open-sidebar-btn');
+        const collapsedIconsContainer = document.getElementById('collapsed-icons-container');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const notificationSound = document.getElementById('notification-sound');
+        // MODIFIED: References for new artifact area
+        const mainContentArea = document.getElementById('main-content-area');
+        const initialPrompts = document.getElementById('initial-prompts');
+        const summarizeBtn = document.getElementById('summarize-btn');
         
         // --- Application State ---
         let socket;
         let screenCaptureInterval;
         let mediaStream;
         let chatHistory = [];
+        let proactiveHistory = [];
+        let lastSentImageForProactive;
         let messageCounter = 0;
-        let currentAiMessage = { bubble: null, textContent: null, toolIndicator: null };
-        let imageStreamState = { isStreaming: false, mimeType: '', base64Data: '' };
-        let activeArtifact = { messageId: null, element: null };
+        let currentAiMessage = { bubble: null, textContent: null, toolIndicator: null, loadingIndicator: null };
+        let originalTitle = document.title;
+        let titleBlinkInterval = null;
+        // MODIFIED: State for managing main area visualizations
+        let previousArtifact = null; // Will hold the DOM node
+        let currentArtifact = null;  // Will hold the DOM node
 
         // --- UI Helper Functions ---
-        // vvvvvvvvvvvv MODIFICATION START vvvvvvvvvvvvvv
-        const showProactiveNotification = (message) => {
+        const startTitleBlinking = () => {
+            if (titleBlinkInterval) return;
+            let isBlinked = false;
+            titleBlinkInterval = setInterval(() => {
+                document.title = isBlinked ? originalTitle : '💡 New Suggestion!';
+                isBlinked = !isBlinked;
+            }, 1000);
+        };
+        const stopTitleBlinking = () => {
+            if (titleBlinkInterval) {
+                clearInterval(titleBlinkInterval);
+                titleBlinkInterval = null;
+                document.title = originalTitle;
+            }
+        };
+        
+        // --- Helper functions for rendering different suggestion/artifact types ---
+        
+        const buildMarkdownMessage = (message, sources, parentElement) => {
+            const formattedMessage = marked.parse(message);
+            let htmlContent = `<div class="prose prose-sm max-w-none">${formattedMessage}</div>`;
+
+            if (sources && sources.length > 0) {
+                const faviconsHtml = sources.map(url => {
+                    try {
+                        const domain = new URL(url).hostname;
+                        const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                        return `<a href="${url}" target="_blank" rel="noopener noreferrer" title="${domain}" class="w-8 h-8 rounded-full bg-white/40 backdrop-blur-sm border border-white/50 flex items-center justify-center -ml-3 first:ml-0 hover:z-10 transition-transform duration-200 hover:scale-110 shadow-sm">
+                                    <img src="${faviconUrl}" alt="${domain} favicon" class="w-4 h-4">
+                                </a>`;
+                    } catch (e) {
+                        console.warn(`Invalid source URL: ${url}`, e);
+                        return '';
+                    }
+                }).join('');
+                htmlContent += `<div class="search-sources !flex-row items-center gap-2 !mt-3">
+                                    <strong>Sources:</strong>
+                                    <div class="flex">${faviconsHtml}</div>
+                                </div>`;
+            }
+            parentElement.innerHTML = htmlContent;
+        };
+
+        const buildCalendarCard = (calendarUrl, parentElement) => {
+            try {
+                const url = new URL(calendarUrl);
+                const title = decodeURIComponent(url.searchParams.get('text') || 'Event');
+                parentElement.innerHTML = `
+                    <div class="calendar-card-outer">
+                        <div class="calendar-card-inner">
+                            <p class="font-semibold text-gray-800">${title}</p>
+                            <a href="${calendarUrl}" target="_blank" rel="noopener noreferrer" class="calendar-card-button">
+                                <i class='bx bxs-calendar-plus'></i> Add to Google Calendar
+                            </a>
+                        </div>
+                    </div>`;
+            } catch (e) {
+                console.error("Failed to parse calendar URL:", e);
+                parentElement.innerHTML = `<p class="text-red-500">Could not display calendar event.</p>`;
+            }
+        };
+        
+        // NEW: Function to display and manage visualizations in the main content area
+        async function displayVisualizationInMainArea(prompt) {
+            initialPrompts.classList.add('hidden');
+
+            if (currentArtifact) {
+                previousArtifact = currentArtifact;
+            }
+
+            currentArtifact = document.createElement('div');
+            currentArtifact.className = 'w-full h-full flex flex-col items-center';
+
+            while (mainContentArea.firstChild) {
+                mainContentArea.removeChild(mainContentArea.firstChild);
+            }
+
+            if (previousArtifact) {
+                const controls = document.createElement('div');
+                controls.className = 'mb-2 self-start';
+                
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'expand-demo-btn';
+                toggleBtn.innerHTML = `<span><i class='bx bx-show'></i> Show Previous Visualization</span>`;
+                
+                toggleBtn.onclick = () => {
+                    const isShowingPrevious = previousArtifact.classList.contains('hidden');
+                    if (isShowingPrevious) {
+                        previousArtifact.classList.remove('hidden');
+                        currentArtifact.classList.add('hidden');
+                        toggleBtn.innerHTML = `<span><i class='bx bx-hide'></i> Show Current Visualization</span>`;
+                    } else {
+                        previousArtifact.classList.add('hidden');
+                        currentArtifact.classList.remove('hidden');
+                        toggleBtn.innerHTML = `<span><i class='bx bx-show'></i> Show Previous Visualization</span>`;
+                    }
+                };
+                
+                controls.appendChild(toggleBtn);
+                mainContentArea.appendChild(controls);
+                previousArtifact.classList.add('hidden');
+                mainContentArea.appendChild(previousArtifact);
+            }
+
+            mainContentArea.appendChild(currentArtifact);
+
+            currentArtifact.innerHTML = `
+                <div class="demo-loader">
+                    <div class="flex items-center gap-1.5 px-1 py-2 text-slate-500 text-sm">
+                        <i class='bx bx-loader-alt bx-spin text-xl'></i>
+                        <span>Generating visualization...</span>
+                    </div>
+                </div>`;
+            
+            try {
+                const response = await fetch('/html_gen', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: prompt, history: [] })
+                });
+                if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+                const htmlCode = await response.text();
+
+                currentArtifact.innerHTML = `
+                    <div class="demo-iframe-container">
+                        <iframe class="demo-iframe" srcdoc="${htmlCode.replace(/"/g, '&quot;')}"></iframe>
+                    </div>`;
+            } catch (error) {
+                console.error("Error generating HTML artifact:", error);
+                currentArtifact.innerHTML = `<p class="text-red-500 p-4">Error loading visualization.</p>`;
+            }
+        }
+        
+        const showProactiveNotification = (suggestionData) => {
+            notificationSound.play().catch(e => console.warn("Audio play failed:", e));
+            if (document.hidden) startTitleBlinking();
+
+            const message = suggestionData.content;
+            const sources = suggestionData.sources || [];
+            
+            const calendarRegex = /\[\["Calendar":"(.*?)"\]\]/s;
+            const demoRegex = /\[\["demo":"(.*?)"\]\]/s;
+
+            const calendarMatch = message.match(calendarRegex);
+            const demoMatch = message.match(demoRegex);
+            
+            if (demoMatch && demoMatch[1].trim()) {
+                // Handle visualization directly in the main area and stop processing this notification
+                displayVisualizationInMainArea(demoMatch[1].trim());
+                return; 
+            }
+            
+            // For all other suggestions, create an item in the suggestions pane
             const suggestionItem = document.createElement('div');
             suggestionItem.className = 'suggestion-item';
-            // Simple markdown for bolding
-            const formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            suggestionItem.innerHTML = `<p>${formattedMessage}</p>`;
+            
+            if (calendarMatch && calendarMatch[1].trim()) {
+                buildCalendarCard(calendarMatch[1].trim(), suggestionItem);
+            } else {
+                // Default to standard markdown rendering for any other message
+                const messageText = message.replace(calendarRegex, '').replace(demoRegex, '').trim();
+                if (messageText) { // Only render if there's text left
+                    buildMarkdownMessage(messageText, sources, suggestionItem);
+                } else {
+                    return; // Don't show an empty suggestion item
+                }
+            }
             
             suggestionsPane.appendChild(suggestionItem);
-            
-            // Auto-scroll to the bottom to show the latest suggestion
             suggestionsPane.scrollTop = suggestionsPane.scrollHeight;
         };
-        // ^^^^^^^^^^^^^^ MODIFICATION END ^^^^^^^^^^^^^^
-
+        
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) stopTitleBlinking(); });
+        
         const appendUserMessage = (content) => {
             const messageWrapper = document.createElement('div');
             messageWrapper.className = 'flex justify-end';
@@ -238,193 +410,125 @@
             const messageId = `ai-message-${messageCounter}`;
             const messageWrapper = document.createElement('div');
             messageWrapper.className = 'flex justify-start';
-            
             const messageBubble = document.createElement('div');
             messageBubble.className = 'max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3 w-full';
-            messageBubble.id = messageId; // Assign ID to the bubble itself
-            
+            messageBubble.id = messageId;
             const toolIndicator = document.createElement('div');
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'flex items-center gap-1.5 px-1 py-2';
+            loadingIndicator.innerHTML = '<span class="dot dot-1"></span><span class="dot dot-2"></span><span class="dot dot-3"></span>';
             const textContent = document.createElement('div');
-            
             messageBubble.appendChild(toolIndicator);
+            messageBubble.appendChild(loadingIndicator);
             messageBubble.appendChild(textContent);
             messageWrapper.appendChild(messageBubble);
             chatMessages.appendChild(messageWrapper);
-            
-            currentAiMessage = { bubble: messageBubble, textContent: textContent, toolIndicator: toolIndicator };
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            currentAiMessage = { bubble: messageBubble, textContent: textContent, toolIndicator: toolIndicator, loadingIndicator: loadingIndicator };
             return messageId;
         };
 
-        const retractArtifact = () => {
-            if (!activeArtifact.element || !activeArtifact.messageId) return;
-
-            const oldMessageBubble = document.getElementById(activeArtifact.messageId);
-            if (!oldMessageBubble) {
-                console.warn("Could not find old message bubble to retract artifact to.");
-                return;
+        const removeLoaderIfNeeded = () => {
+            if (currentAiMessage.loadingIndicator) {
+                currentAiMessage.loadingIndicator.remove();
+                currentAiMessage.loadingIndicator = null;
             }
-
-            const container = document.createElement('div');
-            container.className = 'retracted-artifact-container mt-2';
-            
-            const controls = document.createElement('div');
-            controls.className = 'flex gap-2 mb-1';
-            
-            const expandBtn = document.createElement('button');
-            expandBtn.className = 'text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1';
-            expandBtn.innerHTML = "<i class='bx bx-expand'></i> View Artifact";
-            expandBtn.onclick = () => {
-                container.classList.toggle('expanded');
-                expandBtn.innerHTML = container.classList.contains('expanded') 
-                    ? "<i class='bx bx-collapse'></i> Hide Artifact" 
-                    : "<i class='bx bx-expand'></i> View Artifact";
-            };
-            
-            controls.appendChild(expandBtn);
-            
-            oldMessageBubble.appendChild(controls);
-            oldMessageBubble.appendChild(container);
-            
-            container.appendChild(activeArtifact.element);
-            activeArtifact = { messageId: null, element: null };
-            artifactContainer.innerHTML = ''; // Clear the main artifact pane
         };
 
-        const displayImageArtifact = (dataUrl, messageId) => {
-            retractArtifact(); 
-
-            const img = document.createElement('img');
-            img.src = dataUrl;
-            img.className = 'max-w-full max-h-[60vh] rounded-xl shadow-lg';
-            
-            artifactContainer.innerHTML = '';
-            artifactContainer.appendChild(img);
-            
-            activeArtifact = { messageId: messageId, element: img };
-        };
-
-        // --- Chat (HTTP Streaming) Logic ---
         const handleSendMessage = async () => {
             const message = chatInput.value.trim();
             if (!message) return;
-
             appendUserMessage(message);
             chatHistory.push({"role": "user", "parts": [{"text": message}]});
             chatInput.value = '';
-
             const messageId = createAiMessage();
             let fullResponseText = "";
             let sources = [];
-            
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: message, history: chatHistory.slice(0, -1) })
                 });
-
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
-                    
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n\n');
-                    
                     for (const line of lines) {
                         if (!line.startsWith('data: ')) continue;
                         try {
                             const data = JSON.parse(line.substring(6));
+                            removeLoaderIfNeeded();
                             switch (data.type) {
                                 case 'text':
                                     fullResponseText += data.content;
                                     currentAiMessage.textContent.innerText = fullResponseText;
                                     break;
                                 case 'search_start':
-                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bxl-google bx-spin'></i> <span>Searching with Google...</span></div>`;
+                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bxl-google bx-spin'></i> <span>Searching...</span></div>`;
                                     break;
                                 case 'search_end':
                                     currentAiMessage.toolIndicator.innerHTML = '';
                                     sources = data.content;
                                     break;
-                                case 'code_start':
-                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bx-code-alt bx-spin'></i> <span>Executing Code...</span></div>`;
-                                    break;
-                                case 'code_output':
-                                    currentAiMessage.toolIndicator.innerHTML = '';
-                                    const codeBlock = document.createElement('pre');
-                                    codeBlock.className = 'code-block';
-                                    codeBlock.innerText = data.content;
-                                    currentAiMessage.bubble.appendChild(codeBlock);
-                                    break;
-                                case 'image_start':
-                                    currentAiMessage.toolIndicator.innerHTML = `<div class="tool-indicator"><i class='bx bx-image bx-spin'></i> <span>Generating Image...</span></div>`;
-                                    imageStreamState = { isStreaming: true, mimeType: data.mime_type, base64Data: '' };
-                                    break;
-                                case 'image_chunk':
-                                    if (imageStreamState.isStreaming) imageStreamState.base64Data += data.content;
-                                    break;
-                                case 'image_end':
-                                    if (imageStreamState.isStreaming) {
-                                        currentAiMessage.toolIndicator.innerHTML = '';
-                                        const dataUrl = `data:${imageStreamState.mimeType};base64,${imageStreamState.base64Data}`;
-                                        displayImageArtifact(dataUrl, messageId);
-                                        imageStreamState = { isStreaming: false, mimeType: '', base64Data: '' };
-                                    }
-                                    break;
                                 case 'error':
                                     currentAiMessage.textContent.innerHTML = `<p class="text-red-500">Error: ${data.content}</p>`;
                                     break;
                             }
-                        } catch (e) {
-                            console.warn("Could not parse chunk:", line);
-                        }
+                        } catch (e) { console.warn("Could not parse chunk:", line); }
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }
             } catch (error) {
                 console.error("Chat Error:", error);
+                removeLoaderIfNeeded();
                 currentAiMessage.textContent.innerText = "Sorry, I encountered an error.";
             }
-            
             if (sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'search-sources';
                 const sourceLinks = sources.map(url => {
-                    // Create a cleaner display URL
                     const displayUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
                     return `<a href="${url}" target="_blank" rel="noopener noreferrer"><i class='bx bx-link-external'></i> ${displayUrl}</a>`;
                 }).join('');
                 sourcesDiv.innerHTML = `<strong>Sources:</strong>${sourceLinks}`;
                 currentAiMessage.bubble.appendChild(sourcesDiv);
             }
-
             chatHistory.push({"role": "model", "parts": [{"text": fullResponseText}]});
         };
-
         const stopScreenSharing = () => {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-            }
-            if (socket) {
-                socket.close();
-            }
-            if (screenCaptureInterval) {
-                clearInterval(screenCaptureInterval);
-            }
+            if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+            if (socket) socket.close();
+            if (screenCaptureInterval) clearInterval(screenCaptureInterval);
             videoWrapper.classList.add('hidden');
             shareBtn.classList.remove('hidden');
+            recordingIndicator.classList.add('hidden');
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = `<i class='bx bxs-camera-movie'></i> <span>Share Screen</span>`;
         };
-
-        // --- App Initialization and Event Listeners ---
         const showMainApp = (name) => {
             welcomeMessage.textContent = `Welcome, ${name}`;
             welcomeScreen.classList.add('hidden');
             mainApp.classList.remove('hidden');
         };
-        
+        const toggleSidebar = () => {
+            const isHiding = !rightPane.classList.contains('hidden');
+            rightPane.classList.toggle('hidden');
+            toggleSidebarBtn.classList.toggle('hidden');
+            leftPane.classList.toggle('w-[60%]');
+            leftPane.classList.toggle('w-full');
+            collapsedIconsContainer.classList.toggle('hidden');
+            if (isHiding && !videoWrapper.classList.contains('hidden')) {
+                recordingIndicator.classList.remove('hidden');
+            } else {
+                recordingIndicator.classList.add('hidden');
+            }
+        };
+        toggleSidebarBtn.addEventListener('click', toggleSidebar);
+        openSidebarBtn.addEventListener('click', toggleSidebar);
         continueBtn.addEventListener('click', () => {
             const userName = nameInput.value.trim();
             if (userName) {
@@ -432,19 +536,25 @@
                 showMainApp(userName);
             }
         });
-        
         nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') continueBtn.click(); });
         sendBtn.addEventListener('click', handleSendMessage);
         chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+        
+        // NEW: Event listener for the summarize button
+        summarizeBtn.addEventListener('click', () => displayVisualizationInMainArea('Summarize the current page content'));
 
         shareBtn.addEventListener('click', async () => {
+            shareBtn.disabled = true;
+            shareBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin text-xl'></i> <span>Initializing...</span>`;
             try {
                 mediaStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                mediaStream.getVideoTracks()[0].onended = () => stopScreenSharing();
                 screenVideo.srcObject = mediaStream;
-                
                 shareBtn.classList.add('hidden');
                 videoWrapper.classList.remove('hidden');
-
+                if (rightPane.classList.contains('hidden')) recordingIndicator.classList.remove('hidden');
+                
+                proactiveHistory = [];
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws/proactive`);
 
@@ -452,21 +562,35 @@
                     console.log("Proactive WebSocket connected.");
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
-                    
                     screenCaptureInterval = setInterval(() => {
                         if (socket.readyState !== WebSocket.OPEN) return;
                         canvas.width = screenVideo.videoWidth;
                         canvas.height = screenVideo.videoHeight;
+                        if (canvas.width === 0 || canvas.height === 0) return;
                         context.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        socket.send(dataUrl);
-                    }, 3000); // Send frame every 3 seconds
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                        
+                        const payload = { history: proactiveHistory, current_image: dataURL };
+                        socket.send(JSON.stringify(payload));
+                        lastSentImageForProactive = dataURL;
+                    }, 3000);
                 };
 
                 socket.onmessage = (event) => {
                     const data = JSON.parse(event.data);
-                    if (data.type === 'proactive_suggestion') {
-                        showProactiveNotification(data.content);
+                    if (data.type === 'proactive_update') {
+                        if (data.verdict && lastSentImageForProactive) {
+                            proactiveHistory.push({
+                                image: lastSentImageForProactive,
+                                verdict: data.verdict
+                            });
+                            if (proactiveHistory.length > 2) {
+                                proactiveHistory.shift();
+                            }
+                        }
+                        if (data.suggestion) {
+                            showProactiveNotification(data.suggestion);
+                        }
                     }
                 };
 
@@ -474,26 +598,18 @@
                     console.log("Proactive WebSocket disconnected.");
                     clearInterval(screenCaptureInterval);
                 };
-
                 socket.onerror = (error) => {
                     console.error("WebSocket Error:", error);
                     stopScreenSharing();
                 };
-
             } catch (err) {
                 console.error("Error starting screen share:", err);
-                shareBtn.classList.remove('hidden');
-                videoWrapper.classList.add('hidden');
+                stopScreenSharing();
             }
         });
-
         stopShareBtn.addEventListener('click', stopScreenSharing);
-        
         const savedName = localStorage.getItem('protoUserName');
-        if (savedName) {
-            showMainApp(savedName);
-        }
-    
+        if (savedName) showMainApp(savedName);
     });
     </script>
 </body>
