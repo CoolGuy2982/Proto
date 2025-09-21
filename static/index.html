@@ -112,6 +112,13 @@
         .ai-message-content pre code { font-family: inherit; background-color: transparent; padding: 0; border-radius: 0; font-size: inherit; }
 
 
+        /* Add this to your existing <style> block */
+body.resizing-vertical {
+    cursor: row-resize !important;
+    user-select: none !important;
+}
+
+
         /* Tailwind Typography plugin styles for markdown */
         .prose { color: #374151; max-width: 65ch; } .prose :where(p):not(:where([class~="not-prose"] *)) { margin-top: 1em; margin-bottom: 1em; } .prose :where(strong):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 600; } .prose :where(h1,h2,h3,h4,h5,h6):not(:where([class~="not-prose"] *)) { color: #111827; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2;} .prose :where(h3):not(:where([class~="not-prose"] *)) { font-size: 1.25em; } .prose :where(ul):not(:where([class~="not-prose"] *)) { list-style-type: disc; margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; } .prose :where(li):not(:where([class~="not-prose"] *)) { margin-top: 0.25em; margin-bottom: 0.25em; } .prose-sm { font-size: .875rem; line-height: 1.5; }
     </style>
@@ -176,24 +183,30 @@
             </div>
         </section>
 
-        <section id="right-pane" class="w-[40%] h-full flex flex-col gap-4 transition-all duration-300">
-            <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col">
+        <section id="right-pane" class="w-[40%] h-full flex flex-col transition-all duration-300">
+            <div id="chat-pane" style="flex-basis: 50%;" class="bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col min-h-0">
+                <h3 class="text-lg font-semibold text-slate-800 mb-2 px-2">Proto Chat</h3>
                 <div id="chat-messages" class="flex-1 overflow-y-auto pr-2 space-y-4 py-2">
                     <div class="flex justify-start">
                         <div class="max-w-[85%] bg-slate-200/60 text-slate-800 rounded-2xl rounded-bl-none p-3">
-                           <p>Hello! Ask me to generate an image, do a calculation, or search the web.</p>
+                           <p class="ai-message-content">Hello! Ask me to generate an image, do a calculation, or search the web.</p>
                         </div>
                     </div>
                 </div>
-                <div class="mt-2 flex items-center gap-2">
+                <div class="mt-2 flex items-center gap-2 flex-shrink-0">
                     <input id="chat-input" type="text" placeholder="e.g., Draw a golden retriever in a space suit" class="flex-1 w-full px-4 py-2 bg-white/80 border border-slate-300 rounded-full shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
                     <button id="send-btn" class="bg-slate-900 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0">
                         <i class='bx bxs-up-arrow-alt text-xl'></i>
                     </button>
                 </div>
             </div>
-            <div class="h-1/2 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col justify-between">
-                 <h3 class="text-lg font-semibold text-slate-800">Proactive Assistance</h3>
+
+            <div id="horizontal-resizer" class="flex-shrink-0 w-full h-3 flex items-center justify-center cursor-row-resize group">
+                <div class="w-10 h-1 bg-slate-400/70 group-hover:bg-slate-500 rounded-full transition-colors"></div>
+            </div>
+
+            <div id="proactive-pane" style="flex-basis: 50%;" class="bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-4 flex flex-col justify-between min-h-0">
+                 <h3 class="text-lg font-semibold text-slate-800 flex-shrink-0">Proactive Assistance</h3>
                  <div id="screen-share-container" class="flex-1 flex items-center justify-center my-4 min-h-0">
                     <button id="share-btn" class="flex items-center gap-2 bg-slate-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-opacity-50 transition-all duration-300 disabled:opacity-75 disabled:cursor-wait">
                         <i class='bx bxs-camera-movie'></i>
@@ -208,7 +221,7 @@
                         </div>
                     </div>
                  </div>
-                 <p class="text-xs text-slate-500 text-center">Share your screen to get proactive suggestions from Proto AI in real-time.</p>
+                 <p class="text-xs text-slate-500 text-center flex-shrink-0">Share your screen to get proactive suggestions from Proto AI in real-time.</p>
             </div>
         </section>
 
@@ -223,6 +236,50 @@
         </div>
     </main>
     <script>
+
+        const initializePaneResizer = () => {
+    const rightPane = document.getElementById('right-pane');
+    const chatPane = document.getElementById('chat-pane');
+    const proactivePane = document.getElementById('proactive-pane');
+    const resizer = document.getElementById('horizontal-resizer');
+
+    if (!rightPane || !chatPane || !proactivePane || !resizer) return;
+
+    const handleMouseMove = (e) => {
+        const containerRect = rightPane.getBoundingClientRect();
+        const mouseY = e.clientY - containerRect.top;
+        const resizerHeight = resizer.offsetHeight;
+
+        let topPanePercent = (mouseY / containerRect.height) * 100;
+
+        // Constraints to prevent panes from becoming too small
+        const minTopPercent = 15; // Min height for chat pane
+        const minBottomPercent = 8; // Min height for proactive pane (allows it to be almost hidden)
+
+        if (topPanePercent < minTopPercent) topPanePercent = minTopPercent;
+        if (topPanePercent > (100 - minBottomPercent)) topPanePercent = (100 - minBottomPercent);
+
+        let bottomPanePercent = 100 - topPanePercent;
+
+        chatPane.style.flexBasis = `calc(${topPanePercent}% - ${resizerHeight / 2}px)`;
+        proactivePane.style.flexBasis = `calc(${bottomPanePercent}% - ${resizerHeight / 2}px)`;
+    };
+
+    const handleMouseUp = () => {
+        document.body.classList.remove('resizing-vertical');
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.body.classList.add('resizing-vertical');
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    });
+};
+
+
     document.addEventListener('DOMContentLoaded', () => {
         // --- DOM element references ---
         const welcomeScreen = document.getElementById('welcome-screen');
@@ -885,6 +942,8 @@ const showProactiveNotification = (suggestionData) => {
         stopShareBtn.addEventListener('click', stopScreenSharing);
         const savedName = localStorage.getItem('protoUserName');
         if (savedName) showMainApp(savedName);
+
+    initializePaneResizer();
     });
     </script>
 </body>
