@@ -202,7 +202,7 @@ async def stream_gemini_with_tools(model_name: str, contents: List[Dict], api_ke
         yield {"type": "error", "content": f"An unexpected error occurred: {str(e)}"}
 
 
-        
+
 @app.get("/")
 async def read_root():
     return FileResponse('static/index.html')
@@ -382,9 +382,10 @@ htmlClient = client # or genai.Client() if you want a separate one
 
 async def html_generator(chat_message: ChatMessage) -> str:
     response = await htmlClient.aio.models.generate_content(
-        model="models/gemini-2.5-pro",
+        model="models/gemini-2.5-flash-lite",
         contents=[{"role": "user", "parts": [{"text": chat_message.message}]}],
         config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_budget=-1),
             system_instruction=HTML_SYSTEM_PROMPT,
             response_mime_type="text/plain"
         )
